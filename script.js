@@ -1,14 +1,16 @@
 document.addEventListener("DOMContentLoaded", function() {
     
     // Konfigurasi umum untuk semua grafik agar responsif
+    // Konfigurasi umum untuk semua grafik
     const commonOptions = {
         responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } }, // Sembunyikan legenda karena judul sudah jelas
+        maintainAspectRatio: false, // PASTIKAN INI FALSE 
+        plugins: { legend: { display: false } }, 
         scales: {
-            y: { beginAtZero: true },
+            y: { beginAtZero: false }, 
             x: { grid: { display: false } }
         }
+    };
     };
 
     // --- 1. SETUP GRAFIK TEGANGAN (Warna Teal) ---

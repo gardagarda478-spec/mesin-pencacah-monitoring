@@ -79,13 +79,23 @@ body { background-color: var(--bg-color); color: var(--text-main); }
 .stat-card h2 { font-size: 28px; color: var(--primary-color); }
 
 /* Tata Letak 3 Grafik */
+/* Tata Letak 3 Grafik */
 .charts-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 kolom di PC */
+    grid-template-columns: repeat(2, 1fr); 
     gap: 20px;
 }
 .charts-grid .chart-card:first-child {
-    grid-column: span 2; /* Grafik tegangan dibuat memanjang penuh di atas */
+    grid-column: span 2; 
+}
+
+/* =======================================
+   TAMBAHAN BARU: Membatasi Tinggi Grafik 
+======================================= */
+.chart-container {
+    position: relative;
+    height: 250px; /* Tinggi maksimal grafik (Bisa diubah 200px - 300px) */
+    width: 100%;
 }
 
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }

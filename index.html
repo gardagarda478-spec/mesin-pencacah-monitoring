@@ -101,13 +101,15 @@
                         </div>
                     </div>
 
-                    <div class="charts-grid">
+           <div class="charts-grid">
                         <div class="card chart-card">
                             <div class="card-header">
                                 <h3>Trend Tegangan (V)</h3>
                                 <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
                             </div>
-                            <canvas id="chartTegangan" height="150"></canvas>
+                            <div class="chart-container">
+                                <canvas id="chartTegangan"></canvas>
+                            </div>
                         </div>
                         
                         <div class="card chart-card">
@@ -115,7 +117,9 @@
                                 <h3>Trend Arus (A)</h3>
                                 <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
                             </div>
-                            <canvas id="chartArus" height="150"></canvas>
+                            <div class="chart-container">
+                                <canvas id="chartArus"></canvas>
+                            </div>
                         </div>
 
                         <div class="card chart-card">
@@ -123,11 +127,11 @@
                                 <h3>Trend Suhu Motor (°C)</h3>
                                 <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
                             </div>
-                            <canvas id="chartSuhu" height="150"></canvas>
+                            <div class="chart-container">
+                                <canvas id="chartSuhu"></canvas>
+                            </div>
                         </div>
                     </div>
-
-                </div>
 
             </div>
         </main>
