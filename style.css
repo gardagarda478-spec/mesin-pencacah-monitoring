@@ -120,3 +120,79 @@ body { background-color: var(--bg-color); color: var(--text-main); }
     
     .device-icon { width: 60px; height: 60px; font-size: 25px; }
 }
+/* =========================================
+   TAMPILAN KHUSUS SMARTPHONE (POTRAIT)
+========================================= */
+@media screen and (max-width: 768px) {
+    /* 1. Ubah struktur utama dari kiri-kanan menjadi atas-bawah */
+    .app-container {
+        flex-direction: column;
+        height: auto;
+        overflow-y: auto;
+    }
+
+    /* 2. Sesuaikan Sidebar agar ada di atas dan tidak makan tempat */
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 15px;
+        align-items: center;
+    }
+    
+    .menu {
+        flex-direction: row; /* Menu berjajar ke samping */
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .menu-item {
+        padding: 10px;
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .menu-item span {
+        display: none; /* Sembunyikan teks menu, tampilkan ikon saja di HP */
+    }
+
+    /* 3. Rapikan Header */
+    .topbar {
+        padding: 15px;
+    }
+    
+    .user-name {
+        display: none; /* Sembunyikan nama agar tidak kepanjangan */
+    }
+
+    /* 4. SUSUNAN DASHBOARD UTAMA JADI 1 KOLOM */
+    .dashboard-grid {
+        grid-template-columns: 1fr; /* Paksa jadi 1 kolom penuh */
+        padding: 15px;
+        gap: 20px;
+    }
+
+    /* 5. Ubah Urutan Tampilan (Grafik di atas, Info Mesin di bawah) */
+    .main-stats {
+        order: 1;
+    }
+    .profile-card {
+        order: 2;
+    }
+
+    /* 6. Kotak Parameter (Tegangan, Arus, dll) dibuat 2 baris x 2 kolom */
+    .sensor-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .stat-card {
+        padding: 15px 10px;
+        text-align: center;
+    }
+    
+    .stat-card h2 {
+        font-size: 24px; /* Sedikit dikecilkan agar pas di layar HP */
+    }
+}
