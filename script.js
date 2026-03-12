@@ -1,16 +1,14 @@
 document.addEventListener("DOMContentLoaded", function() {
     
-    // Konfigurasi umum untuk semua grafik agar responsif
     // Konfigurasi umum untuk semua grafik
     const commonOptions = {
         responsive: true,
-        maintainAspectRatio: false, // PASTIKAN INI FALSE 
+        maintainAspectRatio: false, // Ini wajib false agar tinggi grafik pas dengan kotak CSS
         plugins: { legend: { display: false } }, 
         scales: {
             y: { beginAtZero: false }, 
             x: { grid: { display: false } }
         }
-    };
     };
 
     // --- 1. SETUP GRAFIK TEGANGAN (Warna Teal) ---
@@ -18,12 +16,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const chartTegangan = new Chart(ctxTegangan, {
         type: 'line',
         data: {
-            // Cari bagian ini di setup chartTegangan:
-labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
-datasets: [{
-    label: 'Tegangan (V)',
-    data: [26.1, 26.4, 26.2, 26.5, 26.3, 26.4], // Data palsu agar grafik terbentuk
-    // ... sisa kode warnanya biarkan sama
+            // Data Dummy
+            labels: ['0s', '5s', '10s', '15s', '20s', '25s', '30s', '35s'],
+            datasets: [{
+                label: 'Tegangan (V)',
+                data: [26.0, 26.2, 26.4, 26.1, 26.3, 26.5, 26.2, 26.4], 
                 borderColor: '#0ab39c',
                 backgroundColor: 'rgba(10, 179, 156, 0.1)',
                 borderWidth: 2, tension: 0.4, fill: true
@@ -37,12 +34,11 @@ datasets: [{
     const chartArus = new Chart(ctxArus, {
         type: 'line',
         data: {
-            // Cari bagian ini di setup chartArus:
-labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
-datasets: [{
-    label: 'Arus (A)',
-    data: [12.5, 15.0, 14.2, 18.1, 13.5, 12.0], // Data palsu
-    // ...
+            // Data Dummy
+            labels: ['0s', '5s', '10s', '15s', '20s', '25s', '30s', '35s'],
+            datasets: [{
+                label: 'Arus (A)',
+                data: [12.0, 14.5, 15.2, 13.8, 16.0, 15.5, 14.2, 13.0],
                 borderColor: '#e67e22',
                 backgroundColor: 'rgba(230, 126, 34, 0.1)',
                 borderWidth: 2, tension: 0.4, fill: true
@@ -56,12 +52,11 @@ datasets: [{
     const chartSuhu = new Chart(ctxSuhu, {
         type: 'line',
         data: {
-            // Cari bagian ini di setup chartSuhu:
-labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
-datasets: [{
-    label: 'Suhu (°C)',
-    data: [35, 36.5, 38, 39.2, 39.5, 40], // Data palsu
-    // ...
+            // Data Dummy
+            labels: ['0s', '5s', '10s', '15s', '20s', '25s', '30s', '35s'],
+            datasets: [{
+                label: 'Suhu (°C)',
+                data: [35.0, 35.5, 36.2, 37.0, 37.5, 38.0, 38.2, 38.5],
                 borderColor: '#f06548',
                 backgroundColor: 'rgba(240, 101, 72, 0.1)',
                 borderWidth: 2, tension: 0.4, fill: true
@@ -71,7 +66,7 @@ datasets: [{
     });
 
     // --- SETUP FIREBASE ---
-    // GANTI DENGAN KONFIGURASI FIREBASE PROJECT ANDA
+    // Jangan lupa ganti config ini nanti jika ESP32 sudah online
     const firebaseConfig = {
         apiKey: "API_KEY_ANDA",
         authDomain: "NAMA_PROJECT_ANDA.firebaseapp.com",
@@ -92,7 +87,6 @@ datasets: [{
     const elRpm = document.getElementById('val-rpm');
     const elStatusKoneksi = document.getElementById('status-koneksi');
     const elStatusRelay = document.getElementById('status-relay');
-    const elMobileStatusRelay = document.getElementById('mobile-status-relay');
 
     // Listener Real-Time dari Firebase
     dbRef.on('value', (snapshot) => {
@@ -110,17 +104,15 @@ datasets: [{
             // Update Logika Relay
             let statusSistem = data.status_relay || "AMAN";
             if(statusSistem.toUpperCase() === "AMAN") {
-                elStatusRelay.className = "badge active-badge"; elStatusRelay.innerText = "Status: AMAN";
-                if (elMobileStatusRelay) { elMobileStatusRelay.className = "badge active-badge"; elMobileStatusRelay.innerHTML = "<i class='fas fa-check-circle'></i> AMAN"; }
+                if(elStatusRelay) { elStatusRelay.className = "badge active-badge"; elStatusRelay.innerText = "Status: AMAN"; }
             } else {
-                elStatusRelay.className = "badge danger-badge"; elStatusRelay.innerText = "Sistem CUT-OFF!";
-                if (elMobileStatusRelay) { elMobileStatusRelay.className = "badge danger-badge"; elMobileStatusRelay.innerHTML = "<i class='fas fa-exclamation-triangle'></i> CUT-OFF"; }
+                if(elStatusRelay) { elStatusRelay.className = "badge danger-badge"; elStatusRelay.innerText = "Sistem CUT-OFF!"; }
             }
 
             // Update 3 Grafik Real-Time
             let timeNow = new Date().toLocaleTimeString('id-ID', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
             
-            // Masukkan data baru ke array chart
+            // Masukkan data asli dari ESP32 ke array chart
             chartTegangan.data.labels.push(timeNow);
             chartTegangan.data.datasets[0].data.push(data.tegangan || 0);
 
@@ -130,8 +122,8 @@ datasets: [{
             chartSuhu.data.labels.push(timeNow);
             chartSuhu.data.datasets[0].data.push(data.suhu || 0);
             
-            // Batasi agar grafik tidak terlalu panjang (max 15 titik terakhir)
-            if(chartTegangan.data.labels.length > 15){
+            // Batasi agar grafik tidak kepanjangan (max 12 titik terakhir)
+            if(chartTegangan.data.labels.length > 12){
                 chartTegangan.data.labels.shift(); chartTegangan.data.datasets[0].data.shift();
                 chartArus.data.labels.shift(); chartArus.data.datasets[0].data.shift();
                 chartSuhu.data.labels.shift(); chartSuhu.data.datasets[0].data.shift();
@@ -143,7 +135,8 @@ datasets: [{
             chartSuhu.update();
 
         } else {
-            if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-times-circle text-danger'></i> Data Kosong";
+            // Jika Firebase tidak ada data, biarkan dummy data tetap tampil
+            if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-times-circle text-danger'></i> Menunggu koneksi Firebase...";
         }
     }, (error) => {
         console.error("Firebase Error:", error);
