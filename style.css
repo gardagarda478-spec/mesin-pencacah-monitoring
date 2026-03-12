@@ -8,6 +8,8 @@
     --text-muted: #878a99;
     --border-color: #e9ebec;
     --danger: #f06548; /* Merah untuk bahaya */
+    --warning: #f1c40f;
+    --orange: #e67e22;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -43,7 +45,7 @@ body { background-color: var(--bg-color); color: var(--text-main); }
 .user-profile { display: flex; align-items: center; gap: 10px; font-weight: 500; }
 .avatar-admin { width: 35px; height: 35px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; }
 
-.mobile-status-bar { display: none; } /* Disembunyikan di Desktop */
+.mobile-status-bar { display: none; } 
 
 /* --- GRID & CARDS --- */
 .dashboard-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 0 30px 30px 30px; }
@@ -70,129 +72,60 @@ body { background-color: var(--bg-color); color: var(--text-main); }
 .personal-info li { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
 .personal-info i { width: 40px; height: 40px; background: var(--primary-light); color: var(--primary-color); display: flex; justify-content: center; align-items: center; border-radius: 8px; font-size: 18px; }
 
-/* Parameter Cards (Kanan Atas) */
+/* Parameter Cards */
 .main-stats { display: flex; flex-direction: column; gap: 20px; }
 .sensor-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .stat-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 10px; font-weight: 500; }
 .stat-card h2 { font-size: 28px; color: var(--primary-color); }
 
-/* Chart Area */
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.card-header h3 { font-size: 16px; }
-.live-indicator { color: var(--danger); font-size: 14px; font-weight: bold; animation: blink 1.5s infinite; }
+/* Tata Letak 3 Grafik */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 kolom di PC */
+    gap: 20px;
+}
+.charts-grid .chart-card:first-child {
+    grid-column: span 2; /* Grafik tegangan dibuat memanjang penuh di atas */
+}
+
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.card-header h3 { font-size: 15px; }
+.live-indicator { color: var(--danger); font-size: 13px; font-weight: bold; animation: blink 1.5s infinite; }
 @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-
 /* =========================================
-   RESPONSIVE LAYOUT UNTUK SMARTPHONE
+   TAMPILAN KHUSUS SMARTPHONE (POTRAIT)
 ========================================= */
 @media screen and (max-width: 768px) {
     body { padding: 0; background-color: var(--bg-color); }
     .app-container { flex-direction: column; height: auto; overflow: visible; }
 
-    /* Sidebar menjadi menu horizontal di atas */
     .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .logo { justify-content: center; margin-bottom: 15px; }
     .menu { flex-direction: row; justify-content: space-around; gap: 5px; margin-bottom: 0; }
     .menu-item { padding: 10px; font-size: 18px; flex: 1; justify-content: center; border-radius: 8px;}
-    .menu-item span { display: none; /* Sembunyikan teks menu, tampilkan ikon saja */ }
+    .menu-item span { display: none; }
     .promo-card { display: none; }
 
-    /* Header */
     .topbar { padding: 15px; gap: 15px; }
     .page-title h2 { font-size: 18px; }
-    .user-name { display: none; } /* Sembunyikan nama admin */
+    .user-name { display: none; } 
     .mobile-status-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 20px; margin-top: 10px; border-radius: 10px;}
     .mobile-status-bar p { font-weight: 600; color: var(--text-main); margin: 0; }
 
-    /* Dashboard Grid jadi 1 Kolom */
     .dashboard-grid { grid-template-columns: 1fr; gap: 15px; padding: 10px 15px 30px 15px; }
     
-    /* Ubah Urutan: Parameter Atas, Grafik Tengah, Info Perangkat Bawah */
     .main-stats { order: 1; }
     .profile-card { order: 2; padding: 20px; }
 
-    /* Kartu Parameter Sensor menjadi 2 baris x 2 kolom */
     .sensor-stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .stat-card { padding: 15px; text-align: center;}
     .stat-card p { font-size: 12px; }
     .stat-card h2 { font-size: 24px; }
     
+    /* Ubah grid grafik di HP menjadi 1 baris tumpuk ke bawah */
+    .charts-grid { grid-template-columns: 1fr; }
+    .charts-grid .chart-card:first-child { grid-column: span 1; }
+    
     .device-icon { width: 60px; height: 60px; font-size: 25px; }
-}
-/* =========================================
-   TAMPILAN KHUSUS SMARTPHONE (POTRAIT)
-========================================= */
-@media screen and (max-width: 768px) {
-    /* 1. Ubah struktur utama dari kiri-kanan menjadi atas-bawah */
-    .app-container {
-        flex-direction: column;
-        height: auto;
-        overflow-y: auto;
-    }
-
-    /* 2. Sesuaikan Sidebar agar ada di atas dan tidak makan tempat */
-    .sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        padding: 15px;
-        align-items: center;
-    }
-    
-    .menu {
-        flex-direction: row; /* Menu berjajar ke samping */
-        justify-content: center;
-        gap: 10px;
-        width: 100%;
-    }
-    
-    .menu-item {
-        padding: 10px;
-        flex: 1;
-        justify-content: center;
-    }
-    
-    .menu-item span {
-        display: none; /* Sembunyikan teks menu, tampilkan ikon saja di HP */
-    }
-
-    /* 3. Rapikan Header */
-    .topbar {
-        padding: 15px;
-    }
-    
-    .user-name {
-        display: none; /* Sembunyikan nama agar tidak kepanjangan */
-    }
-
-    /* 4. SUSUNAN DASHBOARD UTAMA JADI 1 KOLOM */
-    .dashboard-grid {
-        grid-template-columns: 1fr; /* Paksa jadi 1 kolom penuh */
-        padding: 15px;
-        gap: 20px;
-    }
-
-    /* 5. Ubah Urutan Tampilan (Grafik di atas, Info Mesin di bawah) */
-    .main-stats {
-        order: 1;
-    }
-    .profile-card {
-        order: 2;
-    }
-
-    /* 6. Kotak Parameter (Tegangan, Arus, dll) dibuat 2 baris x 2 kolom */
-    .sensor-stats {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-    
-    .stat-card {
-        padding: 15px 10px;
-        text-align: center;
-    }
-    
-    .stat-card h2 {
-        font-size: 24px; /* Sedikit dikecilkan agar pas di layar HP */
-    }
 }

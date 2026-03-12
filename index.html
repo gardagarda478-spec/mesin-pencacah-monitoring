@@ -13,10 +13,10 @@
         <aside class="sidebar">
             <div class="logo">
                 <i class="fas fa-leaf"></i> EcoChopper
-                </div>
+            </div>
             <nav class="menu">
                 <a href="#" class="menu-item active"><i class="fas fa-border-all"></i> <span>Dashboard</span></a>
- 
+               
             </nav>
             
             <div class="promo-card">
@@ -51,6 +51,7 @@
                 
                 <div class="card profile-card">
                     <img src="logo-alat.jpg" alt="Foto Mesin Pencacah" class="device-img">
+                    
                     <h3>Mesin Pencacah </h3>
                     <p class="role">Sistem Bertenaga Surya</p>
                     <span class="badge active-badge" id="status-relay">Status: AMAN</span>
@@ -100,13 +101,32 @@
                         </div>
                     </div>
 
-                    <div class="card chart-card">
-                        <div class="card-header">
-                            <h3>Trend Tegangan & Suhu</h3>
-                            <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
+                    <div class="charts-grid">
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3>Trend Tegangan (V)</h3>
+                                <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
+                            </div>
+                            <canvas id="chartTegangan" height="150"></canvas>
                         </div>
-                        <canvas id="trendChart" height="100"></canvas>
+                        
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3>Trend Arus (A)</h3>
+                                <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
+                            </div>
+                            <canvas id="chartArus" height="150"></canvas>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3>Trend Suhu Motor (°C)</h3>
+                                <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
+                            </div>
+                            <canvas id="chartSuhu" height="150"></canvas>
+                        </div>
                     </div>
+
                 </div>
 
             </div>

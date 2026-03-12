@@ -1,44 +1,74 @@
 document.addEventListener("DOMContentLoaded", function() {
     
-    // --- 1. SETUP GRAFIK CHART.JS ---
-    const ctxTrend = document.getElementById('trendChart').getContext('2d');
-    const trendChart = new Chart(ctxTrend, {
+    // Konfigurasi umum untuk semua grafik agar responsif
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } }, // Sembunyikan legenda karena judul sudah jelas
+        scales: {
+            y: { beginAtZero: true },
+            x: { grid: { display: false } }
+        }
+    };
+
+    // --- 1. SETUP GRAFIK TEGANGAN (Warna Teal) ---
+    const ctxTegangan = document.getElementById('chartTegangan').getContext('2d');
+    const chartTegangan = new Chart(ctxTegangan, {
         type: 'line',
         data: {
-            labels: ['0s'], // Label awal
-            datasets: [
-                {
-                    label: 'Suhu (°C)',
-                    data: [0], // Data awal
-                    borderColor: '#f06548', // Merah
-                    backgroundColor: 'rgba(240, 101, 72, 0.05)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Tegangan (V)',
-                    data: [0], // Data awal
-                    borderColor: '#0ab39c', // Teal
-                    backgroundColor: 'rgba(10, 179, 156, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
+            // Cari bagian ini di setup chartTegangan:
+labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
+datasets: [{
+    label: 'Tegangan (V)',
+    data: [26.1, 26.4, 26.2, 26.5, 26.3, 26.4], // Data palsu agar grafik terbentuk
+    // ... sisa kode warnanya biarkan sama
+                borderColor: '#0ab39c',
+                backgroundColor: 'rgba(10, 179, 156, 0.1)',
+                borderWidth: 2, tension: 0.4, fill: true
+            }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false, // Penting agar grafik bisa menyesuaikan tinggi di mobile
-            plugins: { legend: { position: 'top', align: 'end' } },
-            scales: {
-                y: { beginAtZero: true },
-                x: { grid: { display: false } }
-            }
-        }
+        options: commonOptions
     });
 
-    // --- 2. SETUP FIREBASE ---
+    // --- 2. SETUP GRAFIK ARUS (Warna Orange) ---
+    const ctxArus = document.getElementById('chartArus').getContext('2d');
+    const chartArus = new Chart(ctxArus, {
+        type: 'line',
+        data: {
+            // Cari bagian ini di setup chartArus:
+labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
+datasets: [{
+    label: 'Arus (A)',
+    data: [12.5, 15.0, 14.2, 18.1, 13.5, 12.0], // Data palsu
+    // ...
+                borderColor: '#e67e22',
+                backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                borderWidth: 2, tension: 0.4, fill: true
+            }]
+        },
+        options: commonOptions
+    });
+
+    // --- 3. SETUP GRAFIK SUHU (Warna Merah) ---
+    const ctxSuhu = document.getElementById('chartSuhu').getContext('2d');
+    const chartSuhu = new Chart(ctxSuhu, {
+        type: 'line',
+        data: {
+            // Cari bagian ini di setup chartSuhu:
+labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
+datasets: [{
+    label: 'Suhu (°C)',
+    data: [35, 36.5, 38, 39.2, 39.5, 40], // Data palsu
+    // ...
+                borderColor: '#f06548',
+                backgroundColor: 'rgba(240, 101, 72, 0.1)',
+                borderWidth: 2, tension: 0.4, fill: true
+            }]
+        },
+        options: commonOptions
+    });
+
+    // --- SETUP FIREBASE ---
     // GANTI DENGAN KONFIGURASI FIREBASE PROJECT ANDA
     const firebaseConfig = {
         apiKey: "API_KEY_ANDA",
@@ -47,13 +77,10 @@ document.addEventListener("DOMContentLoaded", function() {
         projectId: "NAMA_PROJECT_ANDA",
     };
 
-    // Inisialisasi Firebase
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const db = firebase.database();
-    
-    // Asumsi data dari ESP32 dikirim ke path/node "PencacahRumput"
     const dbRef = db.ref('PencacahRumput');
 
     // Elemen HTML yang akan diupdate
@@ -62,68 +89,59 @@ document.addEventListener("DOMContentLoaded", function() {
     const elSuhu = document.getElementById('val-suhu');
     const elRpm = document.getElementById('val-rpm');
     const elStatusKoneksi = document.getElementById('status-koneksi');
-    const elStatusRelay = document.getElementById('status-relay'); // Desktop
-    const elMobileStatusRelay = document.getElementById('mobile-status-relay'); // Mobile
+    const elStatusRelay = document.getElementById('status-relay');
+    const elMobileStatusRelay = document.getElementById('mobile-status-relay');
 
-    // Mendengarkan perubahan data secara Real-Time dari Firebase
+    // Listener Real-Time dari Firebase
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
         
         if (data) {
-            // Update Text Koneksi di Sidebar
-            if(elStatusKoneksi) {
-                elStatusKoneksi.innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke ESP32";
-            }
+            if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke ESP32";
             
-            // Update Angka Parameter (dengan validasi jika data belum ada)
+            // Update Angka
             elTegangan.innerText = data.tegangan !== undefined ? parseFloat(data.tegangan).toFixed(1) : "0.0";
             elArus.innerText = data.arus !== undefined ? parseFloat(data.arus).toFixed(2) : "0.00";
             elSuhu.innerText = data.suhu !== undefined ? parseFloat(data.suhu).toFixed(1) : "0.0";
             elRpm.innerText = data.rpm !== undefined ? data.rpm : "0";
 
-            // Update Logika Status Relay (AMAN atau CUT-OFF)
+            // Update Logika Relay
             let statusSistem = data.status_relay || "AMAN";
-            
             if(statusSistem.toUpperCase() === "AMAN") {
-                // Tampilan Desktop
-                elStatusRelay.className = "badge active-badge";
-                elStatusRelay.innerText = "Status: AMAN";
-                
-                // Tampilan Mobile
-                if (elMobileStatusRelay) {
-                    elMobileStatusRelay.className = "badge active-badge";
-                    elMobileStatusRelay.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
-                }
+                elStatusRelay.className = "badge active-badge"; elStatusRelay.innerText = "Status: AMAN";
+                if (elMobileStatusRelay) { elMobileStatusRelay.className = "badge active-badge"; elMobileStatusRelay.innerHTML = "<i class='fas fa-check-circle'></i> AMAN"; }
             } else {
-                // Tampilan Desktop
-                elStatusRelay.className = "badge danger-badge";
-                elStatusRelay.innerText = "Sistem CUT-OFF!";
-                
-                // Tampilan Mobile
-                if (elMobileStatusRelay) {
-                    elMobileStatusRelay.className = "badge danger-badge";
-                    elMobileStatusRelay.innerHTML = "<i class='fas fa-exclamation-triangle'></i> CUT-OFF";
-                }
+                elStatusRelay.className = "badge danger-badge"; elStatusRelay.innerText = "Sistem CUT-OFF!";
+                if (elMobileStatusRelay) { elMobileStatusRelay.className = "badge danger-badge"; elMobileStatusRelay.innerHTML = "<i class='fas fa-exclamation-triangle'></i> CUT-OFF"; }
             }
 
-            // Update Grafik Real-Time
+            // Update 3 Grafik Real-Time
             let timeNow = new Date().toLocaleTimeString('id-ID', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
             
-            // Tambah data baru ke dalam array grafik
-            trendChart.data.labels.push(timeNow);
-            trendChart.data.datasets[0].data.push(data.suhu || 0);
-            trendChart.data.datasets[1].data.push(data.tegangan || 0);
+            // Masukkan data baru ke array chart
+            chartTegangan.data.labels.push(timeNow);
+            chartTegangan.data.datasets[0].data.push(data.tegangan || 0);
+
+            chartArus.data.labels.push(timeNow);
+            chartArus.data.datasets[0].data.push(data.arus || 0);
+
+            chartSuhu.data.labels.push(timeNow);
+            chartSuhu.data.datasets[0].data.push(data.suhu || 0);
             
-            // Batasi jumlah titik grafik agar tidak menumpuk (misal max 15 titik terakhir)
-            if(trendChart.data.labels.length > 15){
-                trendChart.data.labels.shift();
-                trendChart.data.datasets[0].data.shift();
-                trendChart.data.datasets[1].data.shift();
+            // Batasi agar grafik tidak terlalu panjang (max 15 titik terakhir)
+            if(chartTegangan.data.labels.length > 15){
+                chartTegangan.data.labels.shift(); chartTegangan.data.datasets[0].data.shift();
+                chartArus.data.labels.shift(); chartArus.data.datasets[0].data.shift();
+                chartSuhu.data.labels.shift(); chartSuhu.data.datasets[0].data.shift();
             }
-            trendChart.update();
+            
+            // Terapkan perubahan ke visual grafik
+            chartTegangan.update();
+            chartArus.update();
+            chartSuhu.update();
 
         } else {
-            if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-times-circle text-danger'></i> Data Kosong / ESP Mati";
+            if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-times-circle text-danger'></i> Data Kosong";
         }
     }, (error) => {
         console.error("Firebase Error:", error);
