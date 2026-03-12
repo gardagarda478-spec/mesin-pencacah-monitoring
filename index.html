@@ -12,31 +12,38 @@
     <div class="app-container">
         <aside class="sidebar">
             <div class="logo">
-                <i class="fas fa-leaf"></i> Smart Chopper
-            </div>
+                <i class="fas fa-leaf"></i> EcoChopper
+                </div>
             <nav class="menu">
-                <a href="#" class="menu-item active"><i class="fas fa-border-all"></i> Dashboard</a>
-               
+                <a href="#" class="menu-item active"><i class="fas fa-border-all"></i> <span>Dashboard</span></a>
+ 
             </nav>
             
             <div class="promo-card">
                 <h4>Status Koneksi</h4>
-                <p id="status-koneksi">Menunggu koneksi Firebase...</p>
+                <p id="status-koneksi">Menunggu koneksi...</p>
             </div>
         </aside>
 
         <main class="main-content">
             <header class="topbar">
-                <div class="page-title">
-                    <h2><i class="fas fa-microchip"></i> System Monitoring</h2>
-                    <span class="breadcrumb">Dashboard / Mesin Pencacah / Live Data</span>
-                </div>
-                <div class="topbar-right">
-                    <button class="icon-btn"><i class="far fa-bell"></i></button>
-                    <div class="user-profile">
-                        <div class="avatar-admin"><i class="fas fa-user-shield"></i></div>
-                        <span>Admin System</span>
+                <div class="header-top-row">
+                    <div class="page-title">
+                        <h2><i class="fas fa-microchip"></i> System Monitoring</h2>
+                        <span class="breadcrumb">Dashboard / Mesin Pencacah / Live Data</span>
                     </div>
+                    <div class="topbar-right">
+                        <button class="icon-btn"><i class="far fa-bell"></i></button>
+                        <div class="user-profile">
+                            <div class="avatar-admin"><i class="fas fa-user-shield"></i></div>
+                            <span class="user-name">Admin System</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mobile-status-bar card">
+                    <p>System Status</p>
+                    <span class="badge active-badge" id="mobile-status-relay">Memuat...</span>
                 </div>
             </header>
 
@@ -54,18 +61,18 @@
                             <strong>300 WP</strong>
                         </div>
                         <div class="info-item">
-                            <span>Baterai</span>
+                            <span>Baterai Utama</span>
                             <strong>LiFePO4 24V 100Ah</strong>
                         </div>
                         <div class="info-item">
-                            <span>Motor Utama</span>
+                            <span>Motor Penggerak</span>
                             <strong>MY1016Z 24V DC</strong>
                         </div>
                     </div>
                     
                     <hr>
                     
-                    <h4>Proteksi Aktif</h4>
+                    <h4>Proteksi Sistem</h4>
                     <ul class="personal-info">
                         <li><i class="fas fa-shield-alt"></i> <div><small>BMS</small><br>8S 60A Active</div></li>
                         <li><i class="fas fa-plug"></i> <div><small>Controller</small><br>MPPT 30A</div></li>
