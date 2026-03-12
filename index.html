@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Chopper Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-leaf"></i> Smart Chopper
+            </div>
+            <nav class="menu">
+                <a href="#" class="menu-item active"><i class="fas fa-border-all"></i> Dashboard</a>
+               
+            </nav>
+            
+            <div class="promo-card">
+                <h4>Status Koneksi</h4>
+                <p id="status-koneksi">Menunggu koneksi Firebase...</p>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <div class="page-title">
+                    <h2><i class="fas fa-microchip"></i> System Monitoring</h2>
+                    <span class="breadcrumb">Dashboard / Mesin Pencacah / Live Data</span>
+                </div>
+                <div class="topbar-right">
+                    <button class="icon-btn"><i class="far fa-bell"></i></button>
+                    <div class="user-profile">
+                        <div class="avatar-admin"><i class="fas fa-user-shield"></i></div>
+                        <span>Admin System</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                
+                <div class="card profile-card">
+                    <img src="logo-alat.jpg" alt="Foto Mesin Pencacah" class="device-img">
+                    <h3>Mesin Pencacah </h3>
+                    <p class="role">Sistem Bertenaga Surya</p>
+                    <span class="badge active-badge" id="status-relay">Status: AMAN</span>
+                    
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span>Solar Panel</span>
+                            <strong>300 WP</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Baterai</span>
+                            <strong>LiFePO4 24V 100Ah</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Motor Utama</span>
+                            <strong>MY1016Z 24V DC</strong>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h4>Proteksi Aktif</h4>
+                    <ul class="personal-info">
+                        <li><i class="fas fa-shield-alt"></i> <div><small>BMS</small><br>8S 60A Active</div></li>
+                        <li><i class="fas fa-plug"></i> <div><small>Controller</small><br>MPPT 30A</div></li>
+                        <li><i class="fas fa-microchip"></i> <div><small>MCU</small><br>ESP32 NodeMCU</div></li>
+                    </ul>
+                </div>
+
+                <div class="main-stats">
+                    <div class="sensor-stats">
+                        <div class="card stat-card">
+                            <p>Tegangan (V)</p>
+                            <h2><span id="val-tegangan">0.0</span></h2>
+                        </div>
+                        <div class="card stat-card">
+                            <p>Arus Beban (A)</p>
+                            <h2><span id="val-arus">0.0</span></h2>
+                        </div>
+                        <div class="card stat-card">
+                            <p>Suhu Motor (°C)</p>
+                            <h2><span id="val-suhu">0.0</span></h2>
+                        </div>
+                        <div class="card stat-card">
+                            <p>Kecepatan (RPM)</p>
+                            <h2><span id="val-rpm">0</span></h2>
+                        </div>
+                    </div>
+
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3>Trend Tegangan & Suhu</h3>
+                            <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
+                        </div>
+                        <canvas id="trendChart" height="100"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
