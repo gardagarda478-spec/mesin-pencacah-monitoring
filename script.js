@@ -68,11 +68,14 @@ document.addEventListener("DOMContentLoaded", function() {
     // --- SETUP FIREBASE ---
     // Jangan lupa ganti config ini nanti jika ESP32 sudah online
     const firebaseConfig = {
-        apiKey: "API_KEY_ANDA",
-        authDomain: "NAMA_PROJECT_ANDA.firebaseapp.com",
-        databaseURL: "https://NAMA_PROJECT_ANDA-default-rtdb.firebaseio.com",
-        projectId: "NAMA_PROJECT_ANDA",
-    };
+    apiKey: "AIzaSyAcX08fd30zKGfxeW_ghomAS-ZWRP7R3JU",
+    authDomain: "smart-chopper-a3f98.firebaseapp.com",
+    databaseURL: "https://smart-chopper-a3f98-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "smart-chopper-a3f98",
+    storageBucket: "smart-chopper-a3f98.firebasestorage.app",
+    messagingSenderId: "657402726135",
+    appId: "1:657402726135:web:2bf1ab083add1efb5bb5f2"
+  };
 
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
