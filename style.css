@@ -80,15 +80,17 @@ body { background-color: var(--bg-color); color: var(--text-main); }
 
 /* Tata Letak 3 Grafik */
 /* Tata Letak 3 Grafik */
+/* Tata Letak 4 Grafik (2x2) */
 .charts-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); 
+    grid-template-columns: repeat(2, 1fr); /* Membuat 2 kolom sama besar */
     gap: 20px;
 }
-.charts-grid .chart-card:first-child {
-    grid-column: span 2; 
-}
 
+/* Hapus aturan span 2 agar semua grafik ukurannya sama */
+.charts-grid .chart-card:first-child {
+    grid-column: span 1; 
+}
 /* =======================================
    TAMBAHAN BARU: Membatasi Tinggi Grafik 
 ======================================= */
