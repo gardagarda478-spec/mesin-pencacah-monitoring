@@ -135,9 +135,17 @@ body { background-color: var(--bg-color); color: var(--text-main); }
     .stat-card p { font-size: 12px; }
     .stat-card h2 { font-size: 24px; }
     
-    /* Ubah grid grafik di HP menjadi 1 baris tumpuk ke bawah */
-    .charts-grid { grid-template-columns: 1fr; }
-    .charts-grid .chart-card:first-child { grid-column: span 1; }
+
+    /* Di HP, buat grafik menumpuk 1 kolom ke bawah */
+    .charts-grid { 
+        grid-template-columns: 1fr; 
+    }
+    
+    /* Pastikan grafik pertama tidak memaksa melebar di HP */
+    .charts-grid .chart-card:first-child { 
+        grid-column: span 1; 
+    }
+}
     
     .device-icon { width: 60px; height: 60px; font-size: 25px; }
 }
