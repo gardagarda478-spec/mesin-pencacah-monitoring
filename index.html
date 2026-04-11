@@ -7,12 +7,6 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* Tambahan CSS kecil untuk memastikan grafik daya bisa melebar penuh jika letaknya di bawah */
-        .chart-card-full {
-            grid-column: 1 / -1; /* Membuat card membentang penuh di grid */
-        }
-    </style>
 </head>
 <body>
     <div class="app-container">
@@ -87,6 +81,14 @@
                 </div>
 
                 <div class="main-stats">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                        <h3 style="font-size: 16px; color: var(--text-main);">Parameter Utama</h3>
+                        <div id="live-datetime" style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
+                            <i class="far fa-clock"></i> Memuat waktu...
+                        </div>
+                    </div>
+                    
                     <div class="sensor-stats">
                         <div class="card stat-card">
                             <p>Tegangan (V)</p>
@@ -96,10 +98,12 @@
                             <p>Arus Beban (A)</p>
                             <h2><span id="val-arus">0.0</span></h2>
                         </div>
-                        <div class="card stat-card" style="border-bottom: 4px solid #10B981;">
+                        
+                        <div class="card stat-card">
                             <p>Daya Beban (W)</p>
-                            <h2 style="color: #10B981;"><span id="val-daya">0.00</span></h2>
+                            <h2><span id="val-daya">0.00</span></h2>
                         </div>
+                        
                         <div class="card stat-card">
                             <p>Suhu Motor (°C)</p>
                             <h2><span id="val-suhu">0.0</span></h2>
@@ -133,6 +137,16 @@
 
                         <div class="card chart-card">
                             <div class="card-header">
+                                <h3>Trend Daya Beban (W)</h3>
+                                <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
+                            </div>
+                            <div class="chart-container"> 
+                                <canvas id="chartDaya"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
                                 <h3>Trend Suhu Motor (°C)</h3>
                                 <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
                             </div>
@@ -141,7 +155,7 @@
                             </div>
                         </div>
                         
-                        <div class="card chart-card">
+                        <div class="card chart-card chart-card-full">
                             <div class="card-header">
                                 <h3>Trend Kecepatan (RPM)</h3>
                                 <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
@@ -151,15 +165,7 @@
                             </div>
                         </div>
 
-                        <div class="card chart-card chart-card-full">
-                            <div class="card-header">
-                                <h3>Trend Daya Beban (W)</h3>
-                                <span class="live-indicator" style="color: #10B981;"><i class="fas fa-circle"></i> Live</span>
-                            </div>
-                            <div class="chart-container" style="height: 250px;"> <canvas id="chartDaya"></canvas>
-                            </div>
-                        </div>
-                        </div>
+                    </div>
                 </div>
             </div>
         </main>
