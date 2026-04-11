@@ -7,19 +7,16 @@ document.addEventListener("DOMContentLoaded", function() {
     menuItems.forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
-            
-            // Hapus class 'active' dari semua menu dan tab
             menuItems.forEach(m => m.classList.remove('active'));
             tabContents.forEach(t => t.classList.remove('active'));
             
-            // Tambahkan class 'active' ke menu yang diklik dan tab yang dituju
             item.classList.add('active');
             const targetId = item.getAttribute('data-target');
             document.getElementById(targetId).classList.add('active');
         });
     });
 
-    // --- 2. FUNGSI TAMPILAN TANGGAL & WAKTU ---
+    // --- 2. FUNGSI TANGGAL & WAKTU REAL-TIME ---
     function updateDateTime() {
         const now = new Date();
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
@@ -30,20 +27,19 @@ document.addEventListener("DOMContentLoaded", function() {
     updateDateTime();
     setInterval(updateDateTime, 1000);
 
-    // --- 3. KONFIGURASI UMUM GRAFIK ---
+    // --- 3. KONFIGURASI 5 GRAFIK CHART.JS ---
     const commonOptions = {
         responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
         scales: { y: { beginAtZero: false }, x: { grid: { display: false } } }
     };
 
-    // Inisialisasi 5 Grafik
     const chartTegangan = new Chart(document.getElementById('chartTegangan').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Tegangan (V)', data: [], borderColor: '#0ab39c', backgroundColor: 'rgba(10, 179, 156, 0.1)', borderWidth: 2, tension: 0.4, fill: true }] }, options: commonOptions });
     const chartArus = new Chart(document.getElementById('chartArus').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Arus (A)', data: [], borderColor: '#e67e22', backgroundColor: 'rgba(230, 126, 34, 0.1)', borderWidth: 2, tension: 0.4, fill: true }] }, options: commonOptions });
     const chartDaya = new Chart(document.getElementById('chartDaya').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Daya (W)', data: [], borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 2, tension: 0.4, fill: true }] }, options: commonOptions });
     const chartSuhu = new Chart(document.getElementById('chartSuhu').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Suhu (°C)', data: [], borderColor: '#f06548', backgroundColor: 'rgba(240, 101, 72, 0.1)', borderWidth: 2, tension: 0.4, fill: true }] }, options: commonOptions });
     const chartRpm = new Chart(document.getElementById('chartRpm').getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'RPM', data: [], borderColor: '#4b38b3', backgroundColor: 'rgba(75, 56, 179, 0.1)', borderWidth: 2, tension: 0.4, fill: true }] }, options: commonOptions });
 
-    // --- 4. SETUP FIREBASE ---
+    // --- 4. SETUP FIREBASE & VARIABEL ---
     const firebaseConfig = {
         apiKey: "AIzaSyAcX08fd30zKGfxeW_ghomAS-ZWRP7R3JU",
         authDomain: "smart-chopper-a3f98.firebaseapp.com",
@@ -58,6 +54,10 @@ document.addEventListener("DOMContentLoaded", function() {
     const db = firebase.database();
     const dbRef = db.ref('PencacahRumput');
 
+    // Variabel Simulasi Konsumsi Daya (Wh)
+    let totalEnergiWh = 0;
+    let waktuUpdateTerakhir = Date.now();
+
     // Elemen DOM
     const elTegangan = document.getElementById('val-tegangan');
     const elArus = document.getElementById('val-arus');
@@ -66,6 +66,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const elRpm = document.getElementById('val-rpm');
     const elStatusKoneksi = document.getElementById('status-koneksi');
     const elStatusRelay = document.getElementById('status-relay');
+    const elMotorStatus = document.getElementById('val-motor-status');
+    const elKonsumsi = document.getElementById('val-konsumsi');
 
     const protValTegangan = document.getElementById('prot-val-tegangan');
     const protValArus = document.getElementById('prot-val-arus');
@@ -74,21 +76,37 @@ document.addEventListener("DOMContentLoaded", function() {
     const statUiArus = document.getElementById('stat-ui-arus');
     const statUiSuhu = document.getElementById('stat-ui-suhu');
 
-    // Listener Real-Time dari Firebase
+    // --- LISTENER UTAMA FIREBASE ---
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
         
         if (data) {
             if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke ESP32";
             
-            // Ekstrak Nilai Float & Hitung Daya
+            // Ekstrak & Kalkulasi Daya
             const valTeg = data.tegangan !== undefined ? parseFloat(data.tegangan) : 0;
             const valArus = data.arus !== undefined ? parseFloat(data.arus) : 0;
             const valSuhu = data.suhu !== undefined ? parseFloat(data.suhu) : 0;
             const valRpm = data.rpm !== undefined ? data.rpm : 0;
             const dayaBeban = valTeg * valArus; 
             
-            // --- UPDATE TAB 1: DASHBOARD UTAMA ---
+            // Logika Status Motor (ON jika arus > 0.2A)
+            const statusMotor = valArus > 0.2 ? "ON" : "OFF";
+            const motorColorClass = valArus > 0.2 ? "status-on" : "status-off";
+            if(elMotorStatus) {
+                elMotorStatus.innerText = statusMotor;
+                elMotorStatus.className = motorColorClass;
+            }
+
+            // Logika Konsumsi Daya (Wh)
+            const waktuSekarang = Date.now();
+            const selisihWaktuJam = (waktuSekarang - waktuUpdateTerakhir) / 3600000; 
+            waktuUpdateTerakhir = waktuSekarang;
+            if (data.energi !== undefined) { totalEnergiWh = parseFloat(data.energi); } 
+            else { totalEnergiWh += (dayaBeban * selisihWaktuJam); }
+            if(elKonsumsi) elKonsumsi.innerText = totalEnergiWh.toFixed(2);
+
+            // Update Angka di Tab 1
             if(elTegangan) elTegangan.innerText = valTeg.toFixed(1);
             if(elArus) elArus.innerText = valArus.toFixed(2);
             if(elDaya) elDaya.innerText = dayaBeban.toFixed(2);
@@ -102,6 +120,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if(elStatusRelay) { elStatusRelay.className = "badge danger-badge"; elStatusRelay.innerText = "Sistem CUT-OFF!"; }
             }
 
+            // Update Grafik Real-Time
             let timeNow = new Date().toLocaleTimeString('id-ID', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
             const charts = [chartTegangan, chartArus, chartDaya, chartSuhu, chartRpm];
             const dataKeys = [valTeg, valArus, dayaBeban, valSuhu, valRpm]; 
@@ -116,7 +135,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 chart.update();
             });
 
-            // --- UPDATE TAB 2: LOGIKA STATUS PROTEKSI ---
+            // Update Tab 2 (Logika Proteksi)
             if(protValTegangan) protValTegangan.innerText = valTeg.toFixed(1);
             if(protValArus) protValArus.innerText = valArus.toFixed(2);
             if(protValSuhu) protValSuhu.innerText = valSuhu.toFixed(1);
@@ -141,11 +160,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 statUiSuhu.className = "prot-badge aman"; statUiSuhu.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
             }
 
-            // --- UPDATE TAB 3: TABEL RIWAYAT DATA ---
+            // Update Tab 3 (Tabel Riwayat Data)
             const tbody = document.getElementById('history-tbody');
             if (tbody) {
                 const tr = document.createElement('tr');
-                const statusColorClass = (statusSistem.toUpperCase() === "AMAN") ? "status-on" : "status-off";
+                const relayColorClass = (statusSistem.toUpperCase() === "AMAN") ? "status-on" : "status-off";
 
                 tr.innerHTML = `
                     <td>${timeNow}</td>
@@ -154,14 +173,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     <td>${dayaBeban.toFixed(2)} W</td>
                     <td>${valSuhu.toFixed(1)} °C</td>
                     <td>${valRpm} RPM</td>
-                    <td class="${statusColorClass}">${statusSistem}</td>
+                    <td style="font-weight: bold; color: #f1c40f;">${totalEnergiWh.toFixed(2)} Wh</td>
+                    <td class="${relayColorClass}">${statusSistem}</td>
                 `;
-                tbody.prepend(tr); // Masukkan ke urutan paling atas
+                tbody.prepend(tr); 
 
-                // Batasi maksimal 50 baris di tabel agar browser tidak lag
-                if (tbody.children.length > 50) {
-                    tbody.removeChild(tbody.lastChild);
-                }
+                // Batasi jumlah tabel max 50 baris
+                if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
             }
 
         } else {
@@ -172,12 +190,12 @@ document.addEventListener("DOMContentLoaded", function() {
         if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-exclamation-triangle text-danger'></i> Gagal Konek Database";
     });
 
-    // --- 5. FUNGSI DOWNLOAD LAPORAN PDF ---
+    // --- 5. LOGIKA DOWNLOAD PDF ---
     const btnPdf = document.getElementById('btn-download-pdf');
     if (btnPdf) {
         btnPdf.addEventListener('click', () => {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4'); // 'l' = Landscape
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
 
             doc.setFontSize(18);
             doc.text("Laporan Riwayat Data - Mesin Pencacah Bhakti Farm", 14, 20);
