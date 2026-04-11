@@ -115,9 +115,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
             let statusSistem = data.status_relay || "AMAN";
             if(statusSistem.toUpperCase() === "AMAN") {
-                if(elStatusRelay) { elStatusRelay.className = "badge active-badge"; elStatusRelay.innerText = "Status: AMAN"; }
+                if(elStatusRelay) { 
+                    elStatusRelay.className = "badge active-badge"; 
+                    elStatusRelay.innerHTML = "<i class='fas fa-check-circle'></i> Mesin Siap & Aman"; 
+                }
             } else {
-                if(elStatusRelay) { elStatusRelay.className = "badge danger-badge"; elStatusRelay.innerText = "Sistem CUT-OFF!"; }
+                if(elStatusRelay) { 
+                    elStatusRelay.className = "badge danger-badge"; 
+                    elStatusRelay.innerHTML = "<i class='fas fa-lock'></i> Terkunci (Cut-Off)"; 
+                }
             }
 
             // Update Grafik Real-Time
