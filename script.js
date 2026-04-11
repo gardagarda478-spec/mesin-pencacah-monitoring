@@ -16,7 +16,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const chartTegangan = new Chart(ctxTegangan, {
         type: 'line',
         data: {
-            // Data Dummy
             labels: ['0s', '5s', '10s', '15s', '20s', '25s', '30s', '35s'],
             datasets: [{
                 label: 'Tegangan (V)',
@@ -34,7 +33,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const chartArus = new Chart(ctxArus, {
         type: 'line',
         data: {
-            // Data Dummy
             labels: ['0s', '5s', '10s', '15s', '20s', '25s', '30s', '35s'],
             datasets: [{
                 label: 'Arus (A)',
@@ -52,7 +50,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const chartSuhu = new Chart(ctxSuhu, {
         type: 'line',
         data: {
-            // Data Dummy
             labels: ['0s', '5s', '10s', '15s', '20s', '25s', '30s', '35s'],
             datasets: [{
                 label: 'Suhu (°C)',
@@ -64,7 +61,8 @@ document.addEventListener("DOMContentLoaded", function() {
         },
         options: commonOptions
     });
-// --- 4. SETUP GRAFIK RPM (Warna Biru/Ungu) ---
+
+    // --- 4. SETUP GRAFIK RPM (Warna Biru/Ungu) ---
     const ctxRpm = document.getElementById('chartRpm').getContext('2d');
     const chartRpm = new Chart(ctxRpm, {
         type: 'line',
@@ -80,8 +78,25 @@ document.addEventListener("DOMContentLoaded", function() {
         },
         options: commonOptions
     });
+
+    // --- 5. SETUP GRAFIK DAYA (TAMBAHAN BARU - Warna Hijau) ---
+    const ctxDaya = document.getElementById('chartDaya').getContext('2d');
+    const chartDaya = new Chart(ctxDaya, {
+        type: 'line',
+        data: {
+            labels: ['0s', '5s', '10s', '15s', '20s', '25s', '30s', '35s'],
+            datasets: [{
+                label: 'Daya Beban (W)',
+                data: [312, 379, 401, 360, 420, 410, 372, 343], // Data dummy awal (V x A)
+                borderColor: '#10B981', 
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2, tension: 0.4, fill: true
+            }]
+        },
+        options: commonOptions
+    });
+
     // --- SETUP FIREBASE ---
-    // Jangan lupa ganti config ini nanti jika ESP32 sudah online
     const firebaseConfig = {
     apiKey: "AIzaSyAcX08fd30zKGfxeW_ghomAS-ZWRP7R3JU",
     authDomain: "smart-chopper-a3f98.firebaseapp.com",
@@ -103,6 +118,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const elArus = document.getElementById('val-arus');
     const elSuhu = document.getElementById('val-suhu');
     const elRpm = document.getElementById('val-rpm');
+    const elDaya = document.getElementById('val-daya'); // TAMBAHAN ELEMEN DAYA
     const elStatusKoneksi = document.getElementById('status-koneksi');
     const elStatusRelay = document.getElementById('status-relay');
 
@@ -110,13 +126,19 @@ document.addEventListener("DOMContentLoaded", function() {
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
         
-        
         if (data) {
             if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke ESP32";
             
-            // Update Angka
-            elTegangan.innerText = data.tegangan !== undefined ? parseFloat(data.tegangan).toFixed(1) : "0.0";
-            elArus.innerText = data.arus !== undefined ? parseFloat(data.arus).toFixed(2) : "0.00";
+            // --- LOGIKA PERHITUNGAN DAYA SEMENTARA (MOCKING) ---
+            // Nanti jika PZEM sudah aktif, hapus perkalian ini dan ganti dengan: const dayaBeban = data.daya;
+            const nilaiTegangan = data.tegangan !== undefined ? parseFloat(data.tegangan) : 0;
+            const nilaiArus = data.arus !== undefined ? parseFloat(data.arus) : 0;
+            const dayaBeban = nilaiTegangan * nilaiArus; 
+            
+            // Update Angka di HTML
+            elTegangan.innerText = nilaiTegangan.toFixed(1);
+            elArus.innerText = nilaiArus.toFixed(2);
+            elDaya.innerText = dayaBeban.toFixed(2); // UPDATE TEKS DAYA
             elSuhu.innerText = data.suhu !== undefined ? parseFloat(data.suhu).toFixed(1) : "0.0";
             elRpm.innerText = data.rpm !== undefined ? data.rpm : "0";
 
@@ -128,13 +150,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 if(elStatusRelay) { elStatusRelay.className = "badge danger-badge"; elStatusRelay.innerText = "Sistem CUT-OFF!"; }
             }
 
-            
-            // Update 4 Grafik Real-Time (Suhu, Tegangan, Arus, dan RPM)
+            // Update 5 Grafik Real-Time (Termasuk Grafik Daya)
             let timeNow = new Date().toLocaleTimeString('id-ID', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
             
-            // Masukkan data ke array masing-masing chart
-            const charts = [chartTegangan, chartArus, chartSuhu, chartRpm];
-            const dataKeys = [data.tegangan, data.arus, data.suhu, data.rpm];
+            // Masukkan grafik daya ke dalam array
+            const charts = [chartTegangan, chartArus, chartSuhu, chartRpm, chartDaya];
+            const dataKeys = [data.tegangan, data.arus, data.suhu, data.rpm, dayaBeban]; // Tambahkan dayaBeban ke data array
 
             charts.forEach((chart, index) => {
                 chart.data.labels.push(timeNow);

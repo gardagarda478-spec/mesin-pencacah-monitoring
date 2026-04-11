@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Tambahan CSS kecil untuk memastikan grafik daya bisa melebar penuh jika letaknya di bawah */
+        .chart-card-full {
+            grid-column: 1 / -1; /* Membuat card membentang penuh di grid */
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -16,7 +22,6 @@
             </div>
             <nav class="menu">
                 <a href="#" class="menu-item active"><i class="fas fa-border-all"></i> <span>Dashboard</span></a>
-               
             </nav>
             
             <div class="promo-card">
@@ -91,6 +96,10 @@
                             <p>Arus Beban (A)</p>
                             <h2><span id="val-arus">0.0</span></h2>
                         </div>
+                        <div class="card stat-card" style="border-bottom: 4px solid #10B981;">
+                            <p>Daya Beban (W)</p>
+                            <h2 style="color: #10B981;"><span id="val-daya">0.00</span></h2>
+                        </div>
                         <div class="card stat-card">
                             <p>Suhu Motor (°C)</p>
                             <h2><span id="val-suhu">0.0</span></h2>
@@ -101,7 +110,7 @@
                         </div>
                     </div>
 
-           <div class="charts-grid">
+                    <div class="charts-grid">
                         <div class="card chart-card">
                             <div class="card-header">
                                 <h3>Trend Tegangan (V)</h3>
@@ -132,18 +141,26 @@
                             </div>
                         </div>
                         
-                        <!-- Tambahkan Grafik RPM di bawah Grafik Suhu -->
-<div class="card chart-card">
-    <div class="card-header">
-        <h3>Trend Kecepatan (RPM)</h3>
-        <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
-    </div>
-    <div class="chart-container">
-        <canvas id="chartRpm"></canvas>
-    </div>
-</div>
-                    </div>
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3>Trend Kecepatan (RPM)</h3>
+                                <span class="live-indicator"><i class="fas fa-circle"></i> Live</span>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chartRpm"></canvas>
+                            </div>
+                        </div>
 
+                        <div class="card chart-card chart-card-full">
+                            <div class="card-header">
+                                <h3>Trend Daya Beban (W)</h3>
+                                <span class="live-indicator" style="color: #10B981;"><i class="fas fa-circle"></i> Live</span>
+                            </div>
+                            <div class="chart-container" style="height: 250px;"> <canvas id="chartDaya"></canvas>
+                            </div>
+                        </div>
+                        </div>
+                </div>
             </div>
         </main>
     </div>
