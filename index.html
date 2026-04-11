@@ -6,7 +6,10 @@
     <title>Smart Chopper Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -17,6 +20,7 @@
             <nav class="menu">
                 <a href="#" class="menu-item active" data-target="tab-dashboard"><i class="fas fa-border-all"></i> <span>Dashboard</span></a>
                 <a href="#" class="menu-item" data-target="tab-proteksi"><i class="fas fa-shield-alt"></i> <span>Sistem Proteksi</span></a>
+                <a href="#" class="menu-item" data-target="tab-riwayat"><i class="fas fa-history"></i> <span>Riwayat Data</span></a>
             </nav>
             
             <div class="promo-card">
@@ -139,6 +143,36 @@
                             <div class="prot-val-box">Terbaca: <strong id="prot-val-suhu">0.0</strong> °C</div>
                             <div id="stat-ui-suhu" class="prot-badge">Menunggu Data...</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-riwayat" class="tab-content">
+                <div class="riwayat-container">
+                    <div class="riwayat-header">
+                        <div>
+                            <h2 style="color: var(--text-main); margin-bottom: 5px;">Data Logger Pencacah</h2>
+                            <p style="color: var(--text-muted); font-size: 14px;">Dashboard / Riwayat Data Real-Time</p>
+                        </div>
+                        <button id="btn-download-pdf" class="btn-pdf"><i class="fas fa-file-pdf"></i> Download Laporan PDF</button>
+                    </div>
+
+                    <div class="card table-wrapper">
+                        <table id="history-table" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Waktu</th>
+                                    <th>Tegangan</th>
+                                    <th>Arus</th>
+                                    <th>Daya</th>
+                                    <th>Suhu Motor</th>
+                                    <th>Kecepatan</th>
+                                    <th>Status Relay</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-tbody">
+                                </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

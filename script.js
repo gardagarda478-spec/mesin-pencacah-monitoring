@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const db = firebase.database();
     const dbRef = db.ref('PencacahRumput');
 
-    // Elemen HTML Dashboard Utama
+    // Elemen DOM
     const elTegangan = document.getElementById('val-tegangan');
     const elArus = document.getElementById('val-arus');
     const elDaya = document.getElementById('val-daya');
@@ -67,7 +67,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const elStatusKoneksi = document.getElementById('status-koneksi');
     const elStatusRelay = document.getElementById('status-relay');
 
-    // Elemen HTML Tab Proteksi
     const protValTegangan = document.getElementById('prot-val-tegangan');
     const protValArus = document.getElementById('prot-val-arus');
     const protValSuhu = document.getElementById('prot-val-suhu');
@@ -82,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (data) {
             if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke ESP32";
             
-            // Ekstrak Nilai Float
+            // Ekstrak Nilai Float & Hitung Daya
             const valTeg = data.tegangan !== undefined ? parseFloat(data.tegangan) : 0;
             const valArus = data.arus !== undefined ? parseFloat(data.arus) : 0;
             const valSuhu = data.suhu !== undefined ? parseFloat(data.suhu) : 0;
@@ -103,7 +102,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 if(elStatusRelay) { elStatusRelay.className = "badge danger-badge"; elStatusRelay.innerText = "Sistem CUT-OFF!"; }
             }
 
-            // Update Grafik Real-Time
             let timeNow = new Date().toLocaleTimeString('id-ID', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
             const charts = [chartTegangan, chartArus, chartDaya, chartSuhu, chartRpm];
             const dataKeys = [valTeg, valArus, dayaBeban, valSuhu, valRpm]; 
@@ -123,34 +121,47 @@ document.addEventListener("DOMContentLoaded", function() {
             if(protValArus) protValArus.innerText = valArus.toFixed(2);
             if(protValSuhu) protValSuhu.innerText = valSuhu.toFixed(1);
 
-            // Evaluasi Tegangan (< 21 Bahaya) *Hanya jika sistem mendeteksi tegangan masuk
             if(valTeg > 0 && valTeg < 21.0) {
-                statUiTegangan.className = "prot-badge bahaya";
-                statUiTegangan.innerHTML = "<i class='fas fa-exclamation-triangle'></i> Baterai Drop";
+                statUiTegangan.className = "prot-badge bahaya"; statUiTegangan.innerHTML = "<i class='fas fa-exclamation-triangle'></i> Baterai Drop";
             } else {
-                statUiTegangan.className = "prot-badge aman";
-                statUiTegangan.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+                statUiTegangan.className = "prot-badge aman"; statUiTegangan.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
             }
 
-            // Evaluasi Arus (> 20 Bahaya)
             if(valArus > 20.0) {
-                statUiArus.className = "prot-badge bahaya";
-                statUiArus.innerHTML = "<i class='fas fa-exclamation-triangle'></i> Overcurrent";
+                statUiArus.className = "prot-badge bahaya"; statUiArus.innerHTML = "<i class='fas fa-exclamation-triangle'></i> Overcurrent";
             } else {
-                statUiArus.className = "prot-badge aman";
-                statUiArus.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+                statUiArus.className = "prot-badge aman"; statUiArus.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
             }
 
-            // Evaluasi Suhu (> 60 atau -127 Bahaya)
             if(valSuhu > 60.0) {
-                statUiSuhu.className = "prot-badge bahaya";
-                statUiSuhu.innerHTML = "<i class='fas fa-fire'></i> Overheat";
+                statUiSuhu.className = "prot-badge bahaya"; statUiSuhu.innerHTML = "<i class='fas fa-fire'></i> Overheat";
             } else if(valSuhu === -127 || valSuhu < -10) {
-                statUiSuhu.className = "prot-badge bahaya";
-                statUiSuhu.innerHTML = "<i class='fas fa-plug'></i> Sensor Error";
+                statUiSuhu.className = "prot-badge bahaya"; statUiSuhu.innerHTML = "<i class='fas fa-plug'></i> Sensor Error";
             } else {
-                statUiSuhu.className = "prot-badge aman";
-                statUiSuhu.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+                statUiSuhu.className = "prot-badge aman"; statUiSuhu.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+            }
+
+            // --- UPDATE TAB 3: TABEL RIWAYAT DATA ---
+            const tbody = document.getElementById('history-tbody');
+            if (tbody) {
+                const tr = document.createElement('tr');
+                const statusColorClass = (statusSistem.toUpperCase() === "AMAN") ? "status-on" : "status-off";
+
+                tr.innerHTML = `
+                    <td>${timeNow}</td>
+                    <td>${valTeg.toFixed(1)} V</td>
+                    <td>${valArus.toFixed(2)} A</td>
+                    <td>${dayaBeban.toFixed(2)} W</td>
+                    <td>${valSuhu.toFixed(1)} °C</td>
+                    <td>${valRpm} RPM</td>
+                    <td class="${statusColorClass}">${statusSistem}</td>
+                `;
+                tbody.prepend(tr); // Masukkan ke urutan paling atas
+
+                // Batasi maksimal 50 baris di tabel agar browser tidak lag
+                if (tbody.children.length > 50) {
+                    tbody.removeChild(tbody.lastChild);
+                }
             }
 
         } else {
@@ -160,4 +171,30 @@ document.addEventListener("DOMContentLoaded", function() {
         console.error("Firebase Error:", error);
         if(elStatusKoneksi) elStatusKoneksi.innerHTML = "<i class='fas fa-exclamation-triangle text-danger'></i> Gagal Konek Database";
     });
+
+    // --- 5. FUNGSI DOWNLOAD LAPORAN PDF ---
+    const btnPdf = document.getElementById('btn-download-pdf');
+    if (btnPdf) {
+        btnPdf.addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // 'l' = Landscape
+
+            doc.setFontSize(18);
+            doc.text("Laporan Riwayat Data - Mesin Pencacah Bhakti Farm", 14, 20);
+            
+            doc.setFontSize(11);
+            const printTime = new Date().toLocaleString('id-ID');
+            doc.text(`Dicetak pada: ${printTime}`, 14, 28);
+
+            doc.autoTable({
+                html: '#history-table',
+                startY: 35, 
+                theme: 'striped',
+                headStyles: { fillColor: [10, 179, 156] }, 
+                styles: { halign: 'center' }
+            });
+
+            doc.save(`Laporan_Pencacah_${new Date().getTime()}.pdf`);
+        });
+    }
 });
