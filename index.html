@@ -48,19 +48,16 @@
 
             <div id="tab-dashboard" class="tab-content active">
                 <div class="dashboard-grid">
-                    
                     <div class="card profile-card">
                         <img src="logo-alat.jpg" alt="Mesin Pencacah" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=Mesin'">
                         <h3>Mesin Pencacah</h3>
                         <p class="role">Sistem Bertenaga Surya</p>
                         <span class="badge active-badge" id="status-relay"><i class="fas fa-check-circle"></i> Mesin Siap & Aman</span>
-                        
                         <div class="info-list">
                             <div class="info-item"><span>Solar Panel</span><strong>450 WP</strong></div>
                             <div class="info-item"><span>Baterai Utama</span><strong>LiFePO4 24V 40Ah</strong></div>
                             <div class="info-item"><span>Motor Penggerak</span><strong>MY1016Z 24V DC</strong></div>
                         </div>
-                        
                         <hr>
                         <h4>Hardware Proteksi</h4>
                         <ul class="personal-info">
@@ -73,7 +70,7 @@
 
                     <div class="main-stats">
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                            <h3 style="font-size: 16px; color: var(--text-main);">Parameter Utama</h3>
+                            <h3 style="font-size: 16px; color: var(--text-main);">Parameter Utama (Real-Time)</h3>
                             <div id="live-datetime" style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
                                 <i class="far fa-clock"></i> Memuat waktu...
                             </div>
@@ -99,26 +96,11 @@
                         </div>
 
                         <div class="charts-grid">
-                            <div class="card chart-card">
-                                <div class="card-header"><h3>Trend Tegangan (V)</h3><span class="live-indicator"><i class="fas fa-circle"></i> Live</span></div>
-                                <div class="chart-container"><canvas id="chartTegangan"></canvas></div>
-                            </div>
-                            <div class="card chart-card">
-                                <div class="card-header"><h3>Trend Arus (A)</h3><span class="live-indicator"><i class="fas fa-circle"></i> Live</span></div>
-                                <div class="chart-container"><canvas id="chartArus"></canvas></div>
-                            </div>
-                            <div class="card chart-card">
-                                <div class="card-header"><h3>Trend Daya Beban (W)</h3><span class="live-indicator"><i class="fas fa-circle"></i> Live</span></div>
-                                <div class="chart-container"><canvas id="chartDaya"></canvas></div>
-                            </div>
-                            <div class="card chart-card">
-                                <div class="card-header"><h3>Trend Suhu Motor (°C)</h3><span class="live-indicator"><i class="fas fa-circle"></i> Live</span></div>
-                                <div class="chart-container"><canvas id="chartSuhu"></canvas></div>
-                            </div>
-                            <div class="card chart-card chart-card-full">
-                                <div class="card-header"><h3>Trend Kecepatan (RPM)</h3><span class="live-indicator"><i class="fas fa-circle"></i> Live</span></div>
-                                <div class="chart-container"><canvas id="chartRpm"></canvas></div>
-                            </div>
+                            <div class="card chart-card"><div class="card-header"><h3>Trend Tegangan (V)</h3><span class="live-indicator">Live</span></div><div class="chart-container"><canvas id="chartTegangan"></canvas></div></div>
+                            <div class="card chart-card"><div class="card-header"><h3>Trend Arus (A)</h3><span class="live-indicator">Live</span></div><div class="chart-container"><canvas id="chartArus"></canvas></div></div>
+                            <div class="card chart-card"><div class="card-header"><h3>Trend Daya Beban (W)</h3><span class="live-indicator">Live</span></div><div class="chart-container"><canvas id="chartDaya"></canvas></div></div>
+                            <div class="card chart-card"><div class="card-header"><h3>Trend Suhu Motor (°C)</h3><span class="live-indicator">Live</span></div><div class="chart-container"><canvas id="chartSuhu"></canvas></div></div>
+                            <div class="card chart-card chart-card-full"><div class="card-header"><h3>Trend Kecepatan (RPM)</h3><span class="live-indicator">Live</span></div><div class="chart-container"><canvas id="chartRpm"></canvas></div></div>
                         </div>
                     </div>
                 </div>
@@ -127,32 +109,11 @@
             <div id="tab-proteksi" class="tab-content">
                 <div class="proteksi-container">
                     <h2 class="proteksi-title"><i class="fas fa-shield-virus"></i> Status Proteksi Sistem Real-Time</h2>
-                    <p class="proteksi-subtitle">Sistem memutus arus secara otomatis jika parameter memasuki zona bahaya.</p>
-                    
+                    <p class="proteksi-subtitle">Logika evaluasi sensor untuk pencegahan kerusakan mesin.</p>
                     <div class="proteksi-grid">
-                        <div class="card prot-card">
-                            <div class="prot-icon" style="color: #0ab39c; background: #e6f7f5;"><i class="fas fa-car-battery"></i></div>
-                            <h3>Tegangan Baterai</h3>
-                            <p class="prot-limit">Batas Aman: > 21.0 V</p>
-                            <div class="prot-val-box">Terbaca: <strong id="prot-val-tegangan">0.0</strong> V</div>
-                            <div id="stat-ui-tegangan" class="prot-badge">Menunggu Data...</div>
-                        </div>
-
-                        <div class="card prot-card">
-                            <div class="prot-icon" style="color: #e67e22; background: rgba(230, 126, 34, 0.1);"><i class="fas fa-bolt"></i></div>
-                            <h3>Arus Motor (Beban)</h3>
-                            <p class="prot-limit">Batas Aman: < 20.0 A</p>
-                            <div class="prot-val-box">Terbaca: <strong id="prot-val-arus">0.0</strong> A</div>
-                            <div id="stat-ui-arus" class="prot-badge">Menunggu Data...</div>
-                        </div>
-
-                        <div class="card prot-card">
-                            <div class="prot-icon" style="color: #f06548; background: rgba(240, 101, 72, 0.1);"><i class="fas fa-thermometer-half"></i></div>
-                            <h3>Suhu Motor</h3>
-                            <p class="prot-limit">Batas Aman: < 60.0 °C</p>
-                            <div class="prot-val-box">Terbaca: <strong id="prot-val-suhu">0.0</strong> °C</div>
-                            <div id="stat-ui-suhu" class="prot-badge">Menunggu Data...</div>
-                        </div>
+                        <div class="card prot-card"><div class="prot-icon" style="color: #0ab39c; background: #e6f7f5;"><i class="fas fa-car-battery"></i></div><h3>Tegangan Baterai</h3><p class="prot-limit">Batas: > 21.0 V</p><div class="prot-val-box">Terbaca: <strong id="prot-val-tegangan">0.0</strong> V</div><div id="stat-ui-tegangan" class="prot-badge">Menunggu...</div></div>
+                        <div class="card prot-card"><div class="prot-icon" style="color: #e67e22; background: rgba(230, 126, 34, 0.1);"><i class="fas fa-bolt"></i></div><h3>Arus Motor</h3><p class="prot-limit">Batas: < 20.0 A</p><div class="prot-val-box">Terbaca: <strong id="prot-val-arus">0.0</strong> A</div><div id="stat-ui-arus" class="prot-badge">Menunggu...</div></div>
+                        <div class="card prot-card"><div class="prot-icon" style="color: #f06548; background: rgba(240, 101, 72, 0.1);"><i class="fas fa-thermometer-half"></i></div><h3>Suhu Motor</h3><p class="prot-limit">Batas: < 60.0 °C</p><div class="prot-val-box">Terbaca: <strong id="prot-val-suhu">0.0</strong> °C</div><div id="stat-ui-suhu" class="prot-badge">Menunggu...</div></div>
                     </div>
                 </div>
             </div>
@@ -161,8 +122,8 @@
                 <div class="riwayat-container">
                     <div class="riwayat-header">
                         <div>
-                            <h2 style="color: var(--text-main); margin-bottom: 5px;">Data Logger Pencacah</h2>
-                            <p style="color: var(--text-muted); font-size: 14px;">Dashboard / Riwayat Data Real-Time</p>
+                            <h2 style="color: var(--text-main); margin-bottom: 5px;">Data Logger (Interval 1 Menit)</h2>
+                            <p style="color: var(--text-muted); font-size: 14px;">Data tersimpan secara otomatis di memori lokal browser.</p>
                         </div>
                         <button id="btn-download-pdf" class="btn-pdf"><i class="fas fa-file-pdf"></i> Download Laporan PDF</button>
                     </div>
@@ -171,23 +132,20 @@
                         <table id="history-table" class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Waktu</th>
+                                    <th>Tanggal</th> <th>Waktu</th>
                                     <th>Tegangan</th>
                                     <th>Arus</th>
                                     <th>Daya</th>
-                                    <th>Suhu Motor</th>
-                                    <th>Kecepatan</th>
-                                    <th>Konsumsi (Wh)</th>
-                                    <th>Status Relay</th>
+                                    <th>Suhu</th>
+                                    <th>Konsumsi</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="history-tbody">
-                                </tbody>
+                            <tbody id="history-tbody"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
         </main>
     </div>
 
