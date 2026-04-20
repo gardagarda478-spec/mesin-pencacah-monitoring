@@ -47,13 +47,17 @@ document.addEventListener("DOMContentLoaded", function() {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const dbRef = db.ref('PencacahRumput');
-    const logRef = db.ref('PencacahRumput/Riwayat'); // Path baru untuk Riwayat Global
+    const logRef = db.ref('PencacahRumput/Riwayat');
 
-    // Variabel Kontrol
-    let lastLogTime = 0;
-    const LOG_INTERVAL = 300000; // 5 Menit (300.000 ms)
+    // --- VARIABEL KONTROL & TIMER ---
+    // Mengambil stopwatch terakhir dari memori agar tidak reset saat web di-refresh
+    let lastLogTime = parseInt(localStorage.getItem('timerRiwayat')) || Date.now(); 
+    const LOG_INTERVAL = 300000; // 300000 ms = 5 Menit
+    
+    let totalEnergiWh = parseFloat(localStorage.getItem('lastKonsumsi')) || 0;
+    let waktuUpdateWh = Date.now();
 
-    // --- 5. FUNGSI RENDER TABEL DARI FIREBASE (GLOBAL SYNC) ---
+    // --- 5. RENDER TABEL RIWAYAT DARI FIREBASE (GLOBAL SYNC) ---
     logRef.limitToLast(50).on('value', (snapshot) => {
         const tbody = document.getElementById('history-tbody');
         if (!tbody) return;
@@ -61,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function() {
         let content = "";
         const logs = [];
         
-        // Firebase menyimpan data secara ascending, kita balik agar yang terbaru di atas
+        // Membalik urutan agar data terbaru ada di baris teratas
         snapshot.forEach((child) => {
             logs.unshift(child.val());
         });
@@ -82,7 +86,7 @@ document.addEventListener("DOMContentLoaded", function() {
         tbody.innerHTML = content;
     });
 
-    // --- 6. LISTENER DATA REAL-TIME ---
+    // --- 6. LISTENER DATA SENSOR REAL-TIME ---
     dbRef.on('value', snap => {
         const data = snap.val();
         if (!data) return;
@@ -94,7 +98,20 @@ document.addEventListener("DOMContentLoaded", function() {
         const suhu = parseFloat(data.suhu || 0);
         const rpm = data.rpm || 0;
         const daya = teg * arus;
-        const konsumsiGlobal = parseFloat(data.energi_hari_ini || 0); // Mengambil Wh dari Firebase (Opsi 1)
+        
+        const now = Date.now();
+
+        // --- PERBAIKAN 1: Logika Pintar Konsumsi Daya (Fallback) ---
+        // Jika ESP32 mengirim data Wh, gunakan itu. Jika belum, simulasikan!
+        if (data.energi_hari_ini !== undefined && data.energi_hari_ini > 0) {
+            totalEnergiWh = parseFloat(data.energi_hari_ini);
+        } else {
+            const selisihJam = (now - waktuUpdateWh) / 3600000;
+            totalEnergiWh += (daya * selisihJam);
+        }
+        waktuUpdateWh = now;
+        localStorage.setItem('lastKonsumsi', totalEnergiWh);
+        document.getElementById('val-konsumsi').innerText = totalEnergiWh.toFixed(2);
 
         // Update UI Dashboard
         document.getElementById('val-tegangan').innerText = teg.toFixed(1);
@@ -102,7 +119,6 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('val-daya').innerText = daya.toFixed(2);
         document.getElementById('val-suhu').innerText = suhu.toFixed(1);
         document.getElementById('val-rpm').innerText = rpm;
-        document.getElementById('val-konsumsi').innerText = konsumsiGlobal.toFixed(2);
         
         const mStatus = document.getElementById('val-motor-status');
         mStatus.innerText = arus > 0.2 ? "ON" : "OFF";
@@ -123,12 +139,11 @@ document.addEventListener("DOMContentLoaded", function() {
             c.update();
         });
 
-        // --- 7. LOGIKA PENGIRIMAN LOG KE FIREBASE (SETIAP 5 MENIT) ---
-        const now = Date.now();
+        // --- PERBAIKAN 2: Timer Pengiriman Log Riwayat ---
         if (now - lastLogTime >= LOG_INTERVAL) {
             const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
             
-            // Push ke Firebase agar semua HP bisa melihat data yang sama
+            // Push ke Firebase agar semua perangkat melihat baris yang sama
             logRef.push({
                 tanggal: dateStr,
                 waktu: timeStr,
@@ -137,16 +152,18 @@ document.addEventListener("DOMContentLoaded", function() {
                 daya: daya.toFixed(2),
                 suhu: suhu.toFixed(1),
                 rpm: rpm,
-                konsumsi: konsumsiGlobal.toFixed(2),
+                konsumsi: totalEnergiWh.toFixed(2),
                 status: isSafe ? "AMAN" : "BAHAYA",
                 timestamp: now
             });
 
+            // Catat waktu terakhir log dan simpan ke memori HP
             lastLogTime = now;
+            localStorage.setItem('timerRiwayat', lastLogTime);
         }
     });
 
-    // --- 8. DOWNLOAD PDF ---
+    // --- 7. DOWNLOAD PDF ---
     document.getElementById('btn-download-pdf').addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('l', 'mm', 'a4');
