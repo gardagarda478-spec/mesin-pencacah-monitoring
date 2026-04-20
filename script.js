@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const cSuhu = createChart('chartSuhu', '#f06548', '°C');
     const cRpm = createChart('chartRpm', '#4b38b3', 'RPM');
 
-    // --- 4. FIREBASE & DATA PERSISTENCE ---
+    // --- 4. SETUP FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyAcX08fd30zKGfxeW_ghomAS-ZWRP7R3JU",
         authDomain: "smart-chopper-a3f98.firebaseapp.com",
@@ -45,18 +45,28 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const dbRef = firebase.database().ref('PencacahRumput');
+    const db = firebase.database();
+    const dbRef = db.ref('PencacahRumput');
+    const logRef = db.ref('PencacahRumput/Riwayat'); // Path baru untuk Riwayat Global
 
-    // Load Data dari Local Storage
-    let historyData = JSON.parse(localStorage.getItem('riwayatPencacah')) || [];
-    let totalEnergiWh = parseFloat(localStorage.getItem('lastKonsumsi')) || 0;
+    // Variabel Kontrol
     let lastLogTime = 0;
-    const LOG_INTERVAL = 60000; // 1 Menit
+    const LOG_INTERVAL = 300000; // 5 Menit (300.000 ms)
 
-    function renderTable() {
+    // --- 5. FUNGSI RENDER TABEL DARI FIREBASE (GLOBAL SYNC) ---
+    logRef.limitToLast(50).on('value', (snapshot) => {
         const tbody = document.getElementById('history-tbody');
         if (!tbody) return;
-        tbody.innerHTML = historyData.map(row => `
+        
+        let content = "";
+        const logs = [];
+        
+        // Firebase menyimpan data secara ascending, kita balik agar yang terbaru di atas
+        snapshot.forEach((child) => {
+            logs.unshift(child.val());
+        });
+
+        content = logs.map(row => `
             <tr>
                 <td>${row.tanggal}</td>
                 <td>${row.waktu}</td>
@@ -68,47 +78,36 @@ document.addEventListener("DOMContentLoaded", function() {
                 <td class="${row.status === 'AMAN' ? 'status-on' : 'status-off'}">${row.status}</td>
             </tr>
         `).join('');
-    }
-    renderTable();
+        
+        tbody.innerHTML = content;
+    });
 
-    let waktuUpdateWh = Date.now();
-
+    // --- 6. LISTENER DATA REAL-TIME ---
     dbRef.on('value', snap => {
         const data = snap.val();
         if (!data) return;
 
-        document.getElementById('status-koneksi').innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke ESP32";
+        document.getElementById('status-koneksi').innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke Cloud";
         
         const teg = parseFloat(data.tegangan || 0);
         const arus = parseFloat(data.arus || 0);
         const suhu = parseFloat(data.suhu || 0);
         const rpm = data.rpm || 0;
         const daya = teg * arus;
+        const konsumsiGlobal = parseFloat(data.energi_hari_ini || 0); // Mengambil Wh dari Firebase (Opsi 1)
 
-        // Update Dashboard
+        // Update UI Dashboard
         document.getElementById('val-tegangan').innerText = teg.toFixed(1);
         document.getElementById('val-arus').innerText = arus.toFixed(2);
         document.getElementById('val-daya').innerText = daya.toFixed(2);
         document.getElementById('val-suhu').innerText = suhu.toFixed(1);
         document.getElementById('val-rpm').innerText = rpm;
-
-        // Proteksi Tab
-        document.getElementById('prot-val-tegangan').innerText = teg.toFixed(1);
-        document.getElementById('prot-val-arus').innerText = arus.toFixed(2);
-        document.getElementById('prot-val-suhu').innerText = suhu.toFixed(1);
-
-        // Status Motor & Konsumsi
-        const now = Date.now();
-        totalEnergiWh += (daya * (now - waktuUpdateWh) / 3600000);
-        waktuUpdateWh = now;
-        localStorage.setItem('lastKonsumsi', totalEnergiWh);
-        document.getElementById('val-konsumsi').innerText = totalEnergiWh.toFixed(2);
+        document.getElementById('val-konsumsi').innerText = konsumsiGlobal.toFixed(2);
         
         const mStatus = document.getElementById('val-motor-status');
         mStatus.innerText = arus > 0.2 ? "ON" : "OFF";
         mStatus.className = arus > 0.2 ? "status-on" : "status-off";
 
-        // Logic Status Utama
         const sRelay = document.getElementById('status-relay');
         const isSafe = (data.status_relay || "AMAN").toUpperCase() === "AMAN";
         sRelay.className = isSafe ? "badge active-badge" : "badge danger-badge";
@@ -124,10 +123,13 @@ document.addEventListener("DOMContentLoaded", function() {
             c.update();
         });
 
-        // --- LOGIKA RIWAYAT DATA (1 MENIT) ---
+        // --- 7. LOGIKA PENGIRIMAN LOG KE FIREBASE (SETIAP 5 MENIT) ---
+        const now = Date.now();
         if (now - lastLogTime >= LOG_INTERVAL) {
             const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            historyData.unshift({
+            
+            // Push ke Firebase agar semua HP bisa melihat data yang sama
+            logRef.push({
                 tanggal: dateStr,
                 waktu: timeStr,
                 teg: teg.toFixed(1),
@@ -135,21 +137,22 @@ document.addEventListener("DOMContentLoaded", function() {
                 daya: daya.toFixed(2),
                 suhu: suhu.toFixed(1),
                 rpm: rpm,
-                konsumsi: totalEnergiWh.toFixed(2),
-                status: isSafe ? "AMAN" : "BAHAYA"
+                konsumsi: konsumsiGlobal.toFixed(2),
+                status: isSafe ? "AMAN" : "BAHAYA",
+                timestamp: now
             });
-            if (historyData.length > 100) historyData.pop();
-            localStorage.setItem('riwayatPencacah', JSON.stringify(historyData));
-            renderTable();
+
             lastLogTime = now;
         }
     });
 
-    // --- PDF DOWNLOAD ---
+    // --- 8. DOWNLOAD PDF ---
     document.getElementById('btn-download-pdf').addEventListener('click', () => {
-        const doc = new jspdf.jsPDF('l', 'mm', 'a4');
-        doc.text("Laporan Riwayat Data - Bhakti Farm", 14, 15);
-        doc.autoTable({ html: '#history-table', startY: 25, theme: 'grid', headStyles: { fillColor: [10, 179, 156] } });
-        doc.save(`Laporan_${Date.now()}.pdf`);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4');
+        doc.setFontSize(18);
+        doc.text("Laporan Riwayat Data Global - Bhakti Farm", 14, 20);
+        doc.autoTable({ html: '#history-table', startY: 30, theme: 'striped', headStyles: { fillColor: [10, 179, 156] } });
+        doc.save(`Laporan_BhaktiFarm_${Date.now()}.pdf`);
     });
 });
