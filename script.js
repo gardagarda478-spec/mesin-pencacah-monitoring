@@ -47,19 +47,55 @@ document.addEventListener("DOMContentLoaded", function() {
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('PencacahRumput');
 
-    // --- 5. VARIABEL MEMORI (ANTI-LAG & ANTI-RESET) ---
+    // --- 5. VARIABEL MEMORI & WATCHDOG ---
     let historyData = JSON.parse(localStorage.getItem('riwayatPencacah')) || [];
-    
     let totalEnergiWh = parseFloat(localStorage.getItem('lastKonsumsi'));
     if (isNaN(totalEnergiWh)) totalEnergiWh = 0; 
-    
     let lastLogTime = parseInt(localStorage.getItem('timerRiwayat'));
     if (isNaN(lastLogTime)) lastLogTime = 0;
-
     let waktuUpdateWh = Date.now();
-    const LOG_INTERVAL = 60000; // 60000 ms = 1 Menit (Ganti ke 300000 jika ingin 5 Menit)
+    const LOG_INTERVAL = 60000; // 1 Menit
 
-    // Fungsi Render Tabel Riwayat
+    // Variabel Timer Watchdog
+    let watchdogTimer = null;
+
+    // Fungsi Reset UI ke 0 jika ESP32 Mati (Offline)
+    function setOfflineState() {
+        document.getElementById('status-koneksi').innerHTML = "<i class='fas fa-exclamation-triangle text-danger'></i> ESP32 Terputus / Mati";
+        
+        // Reset Angka
+        document.getElementById('val-tegangan').innerText = "0.0";
+        document.getElementById('val-arus').innerText = "0.00";
+        document.getElementById('val-daya').innerText = "0.00";
+        document.getElementById('val-suhu').innerText = "0.0";
+        document.getElementById('val-rpm').innerText = "0";
+        
+        // Matikan Status Motor
+        const mStatus = document.getElementById('val-motor-status');
+        mStatus.innerText = "OFF";
+        mStatus.className = "status-off";
+
+        // Reset Status Relay
+        const sRelay = document.getElementById('status-relay');
+        sRelay.className = "badge danger-badge";
+        sRelay.innerHTML = "<i class='fas fa-power-off'></i> Mesin Offline";
+
+        // Reset Tab Proteksi
+        const elProtTeg = document.getElementById('prot-val-tegangan');
+        const elProtArus = document.getElementById('prot-val-arus');
+        const elProtSuhu = document.getElementById('prot-val-suhu');
+        if(elProtTeg) elProtTeg.innerText = "0.0";
+        if(elProtArus) elProtArus.innerText = "0.00";
+        if(elProtSuhu) elProtSuhu.innerText = "0.0";
+
+        const stUiTeg = document.getElementById('stat-ui-tegangan');
+        const stUiArus = document.getElementById('stat-ui-arus');
+        const stUiSuhu = document.getElementById('stat-ui-suhu');
+        if(stUiTeg) { stUiTeg.className = "prot-badge"; stUiTeg.innerHTML = "Menunggu Koneksi..."; }
+        if(stUiArus) { stUiArus.className = "prot-badge"; stUiArus.innerHTML = "Menunggu Koneksi..."; }
+        if(stUiSuhu) { stUiSuhu.className = "prot-badge"; stUiSuhu.innerHTML = "Menunggu Koneksi..."; }
+    }
+
     function renderTable() {
         const tbody = document.getElementById('history-tbody');
         if (!tbody) return;
@@ -78,18 +114,17 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     renderTable(); 
 
-    // Elemen UI Tab Proteksi
-    const protValTegangan = document.getElementById('prot-val-tegangan');
-    const protValArus = document.getElementById('prot-val-arus');
-    const protValSuhu = document.getElementById('prot-val-suhu');
-    const statUiTegangan = document.getElementById('stat-ui-tegangan');
-    const statUiArus = document.getElementById('stat-ui-arus');
-    const statUiSuhu = document.getElementById('stat-ui-suhu');
+    // Panggil mode Offline pertama kali web dibuka sebelum ada data
+    setOfflineState();
 
-    // --- 6. LISTENER FIREBASE (MENGAMBIL DATA SENSOR) ---
+    // --- 6. LISTENER FIREBASE ---
     dbRef.on('value', snap => {
         const data = snap.val();
         if (!data) return;
+
+        // RESET TIMER WATCHDOG SETIAP KALI ADA DATA BARU
+        clearTimeout(watchdogTimer);
+        watchdogTimer = setTimeout(setOfflineState, 15000); // 15 Detik toleransi putus koneksi
 
         document.getElementById('status-koneksi').innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke Alat";
         
@@ -99,7 +134,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const rpm = data.rpm || 0;
         const daya = teg * arus;
 
-        // Hitung Konsumsi Wh & Simpan ke Memori
         const now = Date.now();
         const selisihJam = (now - waktuUpdateWh) / 3600000;
         totalEnergiWh += (daya * selisihJam);
@@ -107,14 +141,12 @@ document.addEventListener("DOMContentLoaded", function() {
         localStorage.setItem('lastKonsumsi', totalEnergiWh); 
         document.getElementById('val-konsumsi').innerText = totalEnergiWh.toFixed(2);
 
-        // Update Dashboard Utama
         document.getElementById('val-tegangan').innerText = teg.toFixed(1);
         document.getElementById('val-arus').innerText = arus.toFixed(2);
         document.getElementById('val-daya').innerText = daya.toFixed(2);
         document.getElementById('val-suhu').innerText = suhu.toFixed(1);
         document.getElementById('val-rpm').innerText = rpm;
         
-        // Status Motor & Indikator Utama
         const mStatus = document.getElementById('val-motor-status');
         mStatus.innerText = arus > 0.2 ? "ON" : "OFF";
         mStatus.className = arus > 0.2 ? "status-on" : "status-off";
@@ -124,44 +156,50 @@ document.addEventListener("DOMContentLoaded", function() {
         sRelay.className = isSafe ? "badge active-badge" : "badge danger-badge";
         sRelay.innerHTML = isSafe ? "<i class='fas fa-check-circle'></i> Mesin Siap & Aman" : "<i class='fas fa-lock'></i> Terkunci (Cut-Off)";
 
-        // ==========================================
-        // UPDATE TAB 2: LOGIKA SISTEM PROTEKSI
-        // ==========================================
+        // UPDATE TAB 2: LOGIKA PROTEKSI
+        const protValTegangan = document.getElementById('prot-val-tegangan');
+        const protValArus = document.getElementById('prot-val-arus');
+        const protValSuhu = document.getElementById('prot-val-suhu');
         if(protValTegangan) protValTegangan.innerText = teg.toFixed(1);
         if(protValArus) protValArus.innerText = arus.toFixed(2);
         if(protValSuhu) protValSuhu.innerText = suhu.toFixed(1);
 
-        // A. Setpoint Tegangan (Aman jika > 21.0 V)
-        if (teg > 0 && teg <= 21.0) {
-            statUiTegangan.className = "prot-badge bahaya"; 
-            statUiTegangan.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Drop)";
-        } else {
-            statUiTegangan.className = "prot-badge aman"; 
-            statUiTegangan.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+        const statUiTegangan = document.getElementById('stat-ui-tegangan');
+        if(statUiTegangan){
+            if (teg > 0 && teg <= 21.0) {
+                statUiTegangan.className = "prot-badge bahaya"; 
+                statUiTegangan.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Drop)";
+            } else {
+                statUiTegangan.className = "prot-badge aman"; 
+                statUiTegangan.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+            }
         }
 
-        // B. Setpoint Arus (Aman jika < 20.0 A)
-        if (arus >= 20.0) {
-            statUiArus.className = "prot-badge bahaya"; 
-            statUiArus.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Overcurrent)";
-        } else {
-            statUiArus.className = "prot-badge aman"; 
-            statUiArus.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+        const statUiArus = document.getElementById('stat-ui-arus');
+        if(statUiArus){
+            if (arus >= 20.0) {
+                statUiArus.className = "prot-badge bahaya"; 
+                statUiArus.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Overcurrent)";
+            } else {
+                statUiArus.className = "prot-badge aman"; 
+                statUiArus.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+            }
         }
 
-        // C. Setpoint Suhu (Aman jika < 60.0 °C)
-        if (suhu >= 60.0) {
-            statUiSuhu.className = "prot-badge bahaya"; 
-            statUiSuhu.innerHTML = "<i class='fas fa-fire'></i> BAHAYA (Overheat)";
-        } else if (suhu <= -10 || suhu === -127) {
-            statUiSuhu.className = "prot-badge bahaya"; 
-            statUiSuhu.innerHTML = "<i class='fas fa-plug'></i> SENSOR ERROR";
-        } else {
-            statUiSuhu.className = "prot-badge aman"; 
-            statUiSuhu.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+        const statUiSuhu = document.getElementById('stat-ui-suhu');
+        if(statUiSuhu){
+            if (suhu >= 60.0) {
+                statUiSuhu.className = "prot-badge bahaya"; 
+                statUiSuhu.innerHTML = "<i class='fas fa-fire'></i> BAHAYA (Overheat)";
+            } else if (suhu <= -10 || suhu === -127) {
+                statUiSuhu.className = "prot-badge bahaya"; 
+                statUiSuhu.innerHTML = "<i class='fas fa-plug'></i> SENSOR ERROR";
+            } else {
+                statUiSuhu.className = "prot-badge aman"; 
+                statUiSuhu.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+            }
         }
 
-        // Update Grafik Animasi Cepat
         const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
         [cTeg, cArus, cDaya, cSuhu, cRpm].forEach((c, i) => {
             const val = [teg, arus, daya, suhu, rpm][i];
@@ -171,7 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
             c.update();
         });
 
-        // --- 7. PENYIMPANAN RIWAYAT (LOCAL STORAGE - AMAN DARI LAG) ---
+        // --- 7. PENYIMPANAN RIWAYAT LOCAL STORAGE ---
         if (now - lastLogTime >= LOG_INTERVAL) {
             const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
             
