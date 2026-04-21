@@ -46,85 +46,72 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('PencacahRumput');
+    const logRef = firebase.database().ref('PencacahRumput/Riwayat');
 
-    // --- 5. VARIABEL MEMORI & WATCHDOG ---
-    let historyData = JSON.parse(localStorage.getItem('riwayatPencacah')) || [];
-    let totalEnergiWh = parseFloat(localStorage.getItem('lastKonsumsi'));
-    if (isNaN(totalEnergiWh)) totalEnergiWh = 0; 
-    let lastLogTime = parseInt(localStorage.getItem('timerRiwayat'));
-    if (isNaN(lastLogTime)) lastLogTime = 0;
-    let waktuUpdateWh = Date.now();
-    const LOG_INTERVAL = 60000; // 1 Menit
-
-    // Variabel Timer Watchdog
+    // --- 5. TIMER WATCHDOG (DETEKSI ESP32 MATI) ---
     let watchdogTimer = null;
 
-    // Fungsi Reset UI ke 0 jika ESP32 Mati (Offline)
     function setOfflineState() {
         document.getElementById('status-koneksi').innerHTML = "<i class='fas fa-exclamation-triangle text-danger'></i> ESP32 Terputus / Mati";
         
-        // Reset Angka
         document.getElementById('val-tegangan').innerText = "0.0";
         document.getElementById('val-arus').innerText = "0.00";
         document.getElementById('val-daya').innerText = "0.00";
         document.getElementById('val-suhu').innerText = "0.0";
         document.getElementById('val-rpm').innerText = "0";
         
-        // Matikan Status Motor
         const mStatus = document.getElementById('val-motor-status');
-        mStatus.innerText = "OFF";
-        mStatus.className = "status-off";
+        mStatus.innerText = "OFF"; mStatus.className = "status-off";
 
-        // Reset Status Relay
         const sRelay = document.getElementById('status-relay');
         sRelay.className = "badge danger-badge";
         sRelay.innerHTML = "<i class='fas fa-power-off'></i> Mesin Offline";
 
-        // Reset Tab Proteksi
-        const elProtTeg = document.getElementById('prot-val-tegangan');
-        const elProtArus = document.getElementById('prot-val-arus');
-        const elProtSuhu = document.getElementById('prot-val-suhu');
-        if(elProtTeg) elProtTeg.innerText = "0.0";
-        if(elProtArus) elProtArus.innerText = "0.00";
-        if(elProtSuhu) elProtSuhu.innerText = "0.0";
+        const pTeg = document.getElementById('prot-val-tegangan'); if(pTeg) pTeg.innerText = "0.0";
+        const pArus = document.getElementById('prot-val-arus'); if(pArus) pArus.innerText = "0.00";
+        const pSuhu = document.getElementById('prot-val-suhu'); if(pSuhu) pSuhu.innerText = "0.0";
 
-        const stUiTeg = document.getElementById('stat-ui-tegangan');
-        const stUiArus = document.getElementById('stat-ui-arus');
-        const stUiSuhu = document.getElementById('stat-ui-suhu');
-        if(stUiTeg) { stUiTeg.className = "prot-badge"; stUiTeg.innerHTML = "Menunggu Koneksi..."; }
-        if(stUiArus) { stUiArus.className = "prot-badge"; stUiArus.innerHTML = "Menunggu Koneksi..."; }
-        if(stUiSuhu) { stUiSuhu.className = "prot-badge"; stUiSuhu.innerHTML = "Menunggu Koneksi..."; }
+        const sUiTeg = document.getElementById('stat-ui-tegangan'); if(sUiTeg) { sUiTeg.className = "prot-badge"; sUiTeg.innerHTML = "Menunggu Koneksi..."; }
+        const sUiArus = document.getElementById('stat-ui-arus'); if(sUiArus) { sUiArus.className = "prot-badge"; sUiArus.innerHTML = "Menunggu Koneksi..."; }
+        const sUiSuhu = document.getElementById('stat-ui-suhu'); if(sUiSuhu) { sUiSuhu.className = "prot-badge"; sUiSuhu.innerHTML = "Menunggu Koneksi..."; }
     }
-
-    function renderTable() {
-        const tbody = document.getElementById('history-tbody');
-        if (!tbody) return;
-        tbody.innerHTML = historyData.map(row => `
-            <tr>
-                <td>${row.tanggal}</td>
-                <td>${row.waktu}</td>
-                <td>${row.teg} V</td>
-                <td>${row.arus} A</td>
-                <td>${row.daya} W</td>
-                <td>${row.suhu} °C</td>
-                <td style="color:#f1c40f; font-weight:bold">${row.konsumsi} Wh</td>
-                <td class="${row.status === 'AMAN' ? 'status-on' : 'status-off'}">${row.status}</td>
-            </tr>
-        `).join('');
-    }
-    renderTable(); 
-
-    // Panggil mode Offline pertama kali web dibuka sebelum ada data
+    
+    // Set offline di awal buka web
     setOfflineState();
 
-    // --- 6. LISTENER FIREBASE ---
+    // --- 6. MENGAMBIL TABEL RIWAYAT DARI FIREBASE GLOBAL ---
+    // Web tidak mencatat lagi, hanya membaca yang dikirim ESP32
+    logRef.limitToLast(50).on('value', (snapshot) => {
+        const tbody = document.getElementById('history-tbody');
+        if (!tbody) return;
+        
+        let logs = [];
+        snapshot.forEach((child) => {
+            logs.unshift(child.val()); // Balik urutan agar terbaru di atas
+        });
+
+        tbody.innerHTML = logs.map(row => `
+            <tr>
+                <td>${row.tanggal || '-'}</td>
+                <td>${row.waktu || '-'}</td>
+                <td>${row.teg || '0.0'} V</td>
+                <td>${row.arus || '0.00'} A</td>
+                <td>${row.daya || '0.00'} W</td>
+                <td>${row.suhu || '0.0'} °C</td>
+                <td style="color:#f1c40f; font-weight:bold">${row.konsumsi || '0.00'} Wh</td>
+                <td class="${(row.status || '').includes('AMAN') ? 'status-on' : 'status-off'}">${row.status || '-'}</td>
+            </tr>
+        `).join('');
+    });
+
+    // --- 7. MENGAMBIL DATA REAL-TIME DARI FIREBASE ---
     dbRef.on('value', snap => {
         const data = snap.val();
         if (!data) return;
 
-        // RESET TIMER WATCHDOG SETIAP KALI ADA DATA BARU
+        // Reset Timer Watchdog tiap kali ESP32 mengirim denyut data
         clearTimeout(watchdogTimer);
-        watchdogTimer = setTimeout(setOfflineState, 15000); // 15 Detik toleransi putus koneksi
+        watchdogTimer = setTimeout(setOfflineState, 15000); 
 
         document.getElementById('status-koneksi').innerHTML = "<i class='fas fa-wifi text-success'></i> Terhubung ke Alat";
         
@@ -132,15 +119,13 @@ document.addEventListener("DOMContentLoaded", function() {
         const arus = parseFloat(data.arus || 0);
         const suhu = parseFloat(data.suhu || 0);
         const rpm = data.rpm || 0;
-        const daya = teg * arus;
+        const daya = parseFloat(data.daya || 0);
+        
+        // MENGAMBIL KONSUMSI Wh LANGSUNG DARI ESP32 (Tidak dihitung web lagi)
+        const konsumsiGlobal = parseFloat(data.energi_hari_ini || 0);
+        document.getElementById('val-konsumsi').innerText = konsumsiGlobal.toFixed(2);
 
-        const now = Date.now();
-        const selisihJam = (now - waktuUpdateWh) / 3600000;
-        totalEnergiWh += (daya * selisihJam);
-        waktuUpdateWh = now;
-        localStorage.setItem('lastKonsumsi', totalEnergiWh); 
-        document.getElementById('val-konsumsi').innerText = totalEnergiWh.toFixed(2);
-
+        // Update Dashboard Angka
         document.getElementById('val-tegangan').innerText = teg.toFixed(1);
         document.getElementById('val-arus').innerText = arus.toFixed(2);
         document.getElementById('val-daya').innerText = daya.toFixed(2);
@@ -151,12 +136,13 @@ document.addEventListener("DOMContentLoaded", function() {
         mStatus.innerText = arus > 0.2 ? "ON" : "OFF";
         mStatus.className = arus > 0.2 ? "status-on" : "status-off";
 
+        const statusSistem = (data.status_relay || "AMAN").toUpperCase();
         const sRelay = document.getElementById('status-relay');
-        const isSafe = (data.status_relay || "AMAN").toUpperCase() === "AMAN";
+        const isSafe = statusSistem === "AMAN";
         sRelay.className = isSafe ? "badge active-badge" : "badge danger-badge";
-        sRelay.innerHTML = isSafe ? "<i class='fas fa-check-circle'></i> Mesin Siap & Aman" : "<i class='fas fa-lock'></i> Terkunci (Cut-Off)";
+        sRelay.innerHTML = isSafe ? "<i class='fas fa-check-circle'></i> Mesin Siap & Aman" : `<i class='fas fa-lock'></i> ${statusSistem}`;
 
-        // UPDATE TAB 2: LOGIKA PROTEKSI
+        // Update Tab Proteksi
         const protValTegangan = document.getElementById('prot-val-tegangan');
         const protValArus = document.getElementById('prot-val-arus');
         const protValSuhu = document.getElementById('prot-val-suhu');
@@ -167,39 +153,33 @@ document.addEventListener("DOMContentLoaded", function() {
         const statUiTegangan = document.getElementById('stat-ui-tegangan');
         if(statUiTegangan){
             if (teg > 0 && teg <= 21.0) {
-                statUiTegangan.className = "prot-badge bahaya"; 
-                statUiTegangan.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Drop)";
+                statUiTegangan.className = "prot-badge bahaya"; statUiTegangan.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Drop)";
             } else {
-                statUiTegangan.className = "prot-badge aman"; 
-                statUiTegangan.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+                statUiTegangan.className = "prot-badge aman"; statUiTegangan.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
             }
         }
 
         const statUiArus = document.getElementById('stat-ui-arus');
         if(statUiArus){
             if (arus >= 20.0) {
-                statUiArus.className = "prot-badge bahaya"; 
-                statUiArus.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Overcurrent)";
+                statUiArus.className = "prot-badge bahaya"; statUiArus.innerHTML = "<i class='fas fa-exclamation-triangle'></i> BAHAYA (Overcurrent)";
             } else {
-                statUiArus.className = "prot-badge aman"; 
-                statUiArus.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+                statUiArus.className = "prot-badge aman"; statUiArus.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
             }
         }
 
         const statUiSuhu = document.getElementById('stat-ui-suhu');
         if(statUiSuhu){
-            if (suhu >= 60.0) {
-                statUiSuhu.className = "prot-badge bahaya"; 
-                statUiSuhu.innerHTML = "<i class='fas fa-fire'></i> BAHAYA (Overheat)";
-            } else if (suhu <= -10 || suhu === -127) {
-                statUiSuhu.className = "prot-badge bahaya"; 
-                statUiSuhu.innerHTML = "<i class='fas fa-plug'></i> SENSOR ERROR";
+            if (statusSistem.includes("OVERHEAT")) {
+                statUiSuhu.className = "prot-badge bahaya"; statUiSuhu.innerHTML = "<i class='fas fa-fire'></i> BAHAYA (Overheat)";
+            } else if (statusSistem.includes("SENSOR ERROR")) {
+                statUiSuhu.className = "prot-badge bahaya"; statUiSuhu.innerHTML = "<i class='fas fa-plug'></i> SENSOR ERROR";
             } else {
-                statUiSuhu.className = "prot-badge aman"; 
-                statUiSuhu.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
+                statUiSuhu.className = "prot-badge aman"; statUiSuhu.innerHTML = "<i class='fas fa-check-circle'></i> AMAN";
             }
         }
 
+        // Update Grafik Cepat
         const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
         [cTeg, cArus, cDaya, cSuhu, cRpm].forEach((c, i) => {
             const val = [teg, arus, daya, suhu, rpm][i];
@@ -208,31 +188,6 @@ document.addEventListener("DOMContentLoaded", function() {
             if(c.data.labels.length > 15) { c.data.labels.shift(); c.data.datasets[0].data.shift(); }
             c.update();
         });
-
-        // --- 7. PENYIMPANAN RIWAYAT LOCAL STORAGE ---
-        if (now - lastLogTime >= LOG_INTERVAL) {
-            const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            
-            historyData.unshift({
-                tanggal: dateStr,
-                waktu: timeStr,
-                teg: teg.toFixed(1),
-                arus: arus.toFixed(2),
-                daya: daya.toFixed(2),
-                suhu: suhu.toFixed(1),
-                rpm: rpm,
-                konsumsi: totalEnergiWh.toFixed(2),
-                status: isSafe ? "AMAN" : "BAHAYA"
-            });
-
-            if (historyData.length > 100) historyData.pop(); 
-            
-            localStorage.setItem('riwayatPencacah', JSON.stringify(historyData));
-            lastLogTime = now;
-            localStorage.setItem('timerRiwayat', lastLogTime);
-
-            renderTable();
-        }
     });
 
     // --- 8. FUNGSI DOWNLOAD PDF ---
