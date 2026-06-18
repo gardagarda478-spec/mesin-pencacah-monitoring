@@ -60,12 +60,21 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('val-suhu').innerText = "0.0";
         document.getElementById('val-rpm').innerText = "0";
         
+        // Reset Baterai saat offline
+        const valBaterai = document.getElementById('nilai-baterai');
+        if (valBaterai) {
+            valBaterai.innerText = "0";
+            valBaterai.style.color = "var(--text-muted)";
+        }
+        
         const mStatus = document.getElementById('val-motor-status');
-        mStatus.innerText = "OFF"; mStatus.className = "status-off";
+        if (mStatus) { mStatus.innerText = "OFF"; mStatus.className = "status-off"; }
 
         const sRelay = document.getElementById('status-relay');
-        sRelay.className = "badge danger-badge";
-        sRelay.innerHTML = "<i class='fas fa-power-off'></i> Mesin Offline";
+        if (sRelay) {
+            sRelay.className = "badge danger-badge";
+            sRelay.innerHTML = "<i class='fas fa-power-off'></i> Mesin Offline";
+        }
 
         const pTeg = document.getElementById('prot-val-tegangan'); if(pTeg) pTeg.innerText = "0.0";
         const pArus = document.getElementById('prot-val-arus'); if(pArus) pArus.innerText = "0.00";
@@ -121,11 +130,29 @@ document.addEventListener("DOMContentLoaded", function() {
         const rpm = data.rpm || 0;
         const daya = parseFloat(data.daya || 0);
         
-        // MENGAMBIL KONSUMSI Wh LANGSUNG DARI ESP32 (Tidak dihitung web lagi)
+        // MENGAMBIL DATA BATERAI % DARI ESP32
+        const bateraiPersen = parseFloat(data.baterai_persen || 0);
+        
+        // MENGAMBIL KONSUMSI Wh LANGSUNG DARI ESP32
         const konsumsiGlobal = parseFloat(data.energi_hari_ini || 0);
+        
+        // Update Tampilan Baterai dengan Logika Warna
+        const elemenBaterai = document.getElementById('nilai-baterai');
+        if (elemenBaterai) {
+            elemenBaterai.innerText = Math.round(bateraiPersen);
+            
+            if (bateraiPersen > 50) {
+                elemenBaterai.style.color = "#00b09b"; // Hijau: Sehat
+            } else if (bateraiPersen > 20) {
+                elemenBaterai.style.color = "#FFA500"; // Oranye: Peringatan Sedang
+            } else {
+                elemenBaterai.style.color = "#FF0000"; // Merah: Segera Cas!
+            }
+        }
+
         document.getElementById('val-konsumsi').innerText = konsumsiGlobal.toFixed(2);
 
-        // Update Dashboard Angka
+        // Update Dashboard Angka Utama
         document.getElementById('val-tegangan').innerText = teg.toFixed(1);
         document.getElementById('val-arus').innerText = arus.toFixed(2);
         document.getElementById('val-daya').innerText = daya.toFixed(2);
@@ -133,14 +160,18 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('val-rpm').innerText = rpm;
         
         const mStatus = document.getElementById('val-motor-status');
-        mStatus.innerText = arus > 0.2 ? "ON" : "OFF";
-        mStatus.className = arus > 0.2 ? "status-on" : "status-off";
+        if (mStatus) {
+            mStatus.innerText = arus > 0.2 ? "ON" : "OFF";
+            mStatus.className = arus > 0.2 ? "status-on" : "status-off";
+        }
 
         const statusSistem = (data.status_relay || "AMAN").toUpperCase();
         const sRelay = document.getElementById('status-relay');
-        const isSafe = statusSistem === "AMAN";
-        sRelay.className = isSafe ? "badge active-badge" : "badge danger-badge";
-        sRelay.innerHTML = isSafe ? "<i class='fas fa-check-circle'></i> Mesin Siap & Aman" : `<i class='fas fa-lock'></i> ${statusSistem}`;
+        if (sRelay) {
+            const isSafe = statusSistem === "AMAN" || statusSistem === "STANDBY" || statusSistem === "SOFT-START";
+            sRelay.className = isSafe ? "badge active-badge" : "badge danger-badge";
+            sRelay.innerHTML = isSafe ? "<i class='fas fa-check-circle'></i> Mesin Siap & Aman" : `<i class='fas fa-lock'></i> ${statusSistem}`;
+        }
 
         // Update Tab Proteksi
         const protValTegangan = document.getElementById('prot-val-tegangan');
@@ -191,12 +222,15 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     // --- 8. FUNGSI DOWNLOAD PDF ---
-    document.getElementById('btn-download-pdf').addEventListener('click', () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', 'a4');
-        doc.setFontSize(18);
-        doc.text("Laporan Riwayat Data - Bhakti Farm", 14, 20);
-        doc.autoTable({ html: '#history-table', startY: 30, theme: 'striped', headStyles: { fillColor: [10, 179, 156] } });
-        doc.save(`Laporan_BhaktiFarm_${Date.now()}.pdf`);
-    });
+    const btnDownload = document.getElementById('btn-download-pdf');
+    if (btnDownload) {
+        btnDownload.addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            doc.setFontSize(18);
+            doc.text("Laporan Riwayat Data - Bhakti Farm", 14, 20);
+            doc.autoTable({ html: '#history-table', startY: 30, theme: 'striped', headStyles: { fillColor: [10, 179, 156] } });
+            doc.save(`Laporan_BhaktiFarm_${Date.now()}.pdf`);
+        });
+    }
 });
