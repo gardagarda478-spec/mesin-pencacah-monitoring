@@ -60,7 +60,6 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('val-suhu').innerText = "0.0";
         document.getElementById('val-rpm').innerText = "0";
         
-        // Reset Baterai saat offline
         const valBaterai = document.getElementById('nilai-baterai');
         if (valBaterai) {
             valBaterai.innerText = "0";
@@ -85,24 +84,33 @@ document.addEventListener("DOMContentLoaded", function() {
         const sUiSuhu = document.getElementById('stat-ui-suhu'); if(sUiSuhu) { sUiSuhu.className = "prot-badge"; sUiSuhu.innerHTML = "Menunggu Koneksi..."; }
     }
     
-    // Set offline di awal buka web
     setOfflineState();
 
     // --- 6. MENGAMBIL TABEL RIWAYAT DARI FIREBASE GLOBAL ---
-    // Web tidak mencatat lagi, hanya membaca yang dikirim ESP32
     logRef.limitToLast(50).on('value', (snapshot) => {
         const tbody = document.getElementById('history-tbody');
         if (!tbody) return;
         
         let logs = [];
         snapshot.forEach((child) => {
-            logs.unshift(child.val()); // Balik urutan agar terbaru di atas
+            let row = child.val();
+            // PERBAIKAN: Filter ketat! Hanya masukkan data yang benar-benar ada tanggal & waktunya
+            if (row && row.tanggal && row.waktu && row.tanggal !== "-" && row.tanggal !== "N/A") {
+                logs.unshift(row); // Balik urutan agar terbaru di atas
+            }
         });
 
+        // Mencegah tabel kosong melompong jika data belum ada
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #6c757d;">Menunggu data riwayat masuk...</td></tr>`;
+            return;
+        }
+
+        // Render tabel jika data valid
         tbody.innerHTML = logs.map(row => `
             <tr>
-                <td>${row.tanggal || '-'}</td>
-                <td>${row.waktu || '-'}</td>
+                <td>${row.tanggal}</td>
+                <td>${row.waktu}</td>
                 <td>${row.teg || '0.0'} V</td>
                 <td>${row.arus || '0.00'} A</td>
                 <td>${row.daya || '0.00'} W</td>
@@ -118,7 +126,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const data = snap.val();
         if (!data) return;
 
-        // Reset Timer Watchdog tiap kali ESP32 mengirim denyut data
         clearTimeout(watchdogTimer);
         watchdogTimer = setTimeout(setOfflineState, 15000); 
 
@@ -130,29 +137,22 @@ document.addEventListener("DOMContentLoaded", function() {
         const rpm = data.rpm || 0;
         const daya = parseFloat(data.daya || 0);
         
-        // MENGAMBIL DATA BATERAI % DARI ESP32
         const bateraiPersen = parseFloat(data.baterai_persen || 0);
-        
-        // MENGAMBIL KONSUMSI Wh LANGSUNG DARI ESP32
         const konsumsiGlobal = parseFloat(data.energi_hari_ini || 0);
         
-        // Update Tampilan Baterai dengan Logika Warna
         const elemenBaterai = document.getElementById('nilai-baterai');
         if (elemenBaterai) {
             elemenBaterai.innerText = Math.round(bateraiPersen);
-            
             if (bateraiPersen > 50) {
-                elemenBaterai.style.color = "#00b09b"; // Hijau: Sehat
+                elemenBaterai.style.color = "#00b09b"; 
             } else if (bateraiPersen > 20) {
-                elemenBaterai.style.color = "#FFA500"; // Oranye: Peringatan Sedang
+                elemenBaterai.style.color = "#FFA500"; 
             } else {
-                elemenBaterai.style.color = "#FF0000"; // Merah: Segera Cas!
+                elemenBaterai.style.color = "#FF0000"; 
             }
         }
 
         document.getElementById('val-konsumsi').innerText = konsumsiGlobal.toFixed(2);
-
-        // Update Dashboard Angka Utama
         document.getElementById('val-tegangan').innerText = teg.toFixed(1);
         document.getElementById('val-arus').innerText = arus.toFixed(2);
         document.getElementById('val-daya').innerText = daya.toFixed(2);
@@ -173,7 +173,6 @@ document.addEventListener("DOMContentLoaded", function() {
             sRelay.innerHTML = isSafe ? "<i class='fas fa-check-circle'></i> Mesin Siap & Aman" : `<i class='fas fa-lock'></i> ${statusSistem}`;
         }
 
-        // Update Tab Proteksi
         const protValTegangan = document.getElementById('prot-val-tegangan');
         const protValArus = document.getElementById('prot-val-arus');
         const protValSuhu = document.getElementById('prot-val-suhu');
@@ -210,7 +209,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        // Update Grafik Cepat
         const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
         [cTeg, cArus, cDaya, cSuhu, cRpm].forEach((c, i) => {
             const val = [teg, arus, daya, suhu, rpm][i];

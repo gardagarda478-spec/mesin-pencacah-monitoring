@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Chopper Dashboard</title>
+    
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -26,9 +27,10 @@
             }
         }
     </style>
-    </head>
+</head>
 <body>
     <div class="app-container">
+        
         <aside class="sidebar">
             <div class="logo">
                 <i class="fas fa-leaf"></i> Bhakti Farm
@@ -46,6 +48,7 @@
         </aside>
 
         <main class="main-content">
+            
             <header class="topbar">
                 <div class="header-top-row">
                     <div class="page-title">
@@ -64,6 +67,7 @@
 
             <div id="tab-dashboard" class="tab-content active">
                 <div class="dashboard-grid">
+                    
                     <div class="card profile-card">
                         <img src="logo-alat.jpg" alt="Mesin Pencacah" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=Mesin'">
                         <h3>Mesin Pencacah</h3>
@@ -132,8 +136,8 @@
                     <p class="proteksi-subtitle">Logika evaluasi sensor untuk pencegahan kerusakan mesin.</p>
                     <div class="proteksi-grid">
                         <div class="card prot-card"><div class="prot-icon" style="color: #0ab39c; background: #e6f7f5;"><i class="fas fa-car-battery"></i></div><h3>Tegangan Baterai</h3><p class="prot-limit">Batas: > 21.0 V</p><div class="prot-val-box">Terbaca: <strong id="prot-val-tegangan">0.0</strong> V</div><div id="stat-ui-tegangan" class="prot-badge">Menunggu...</div></div>
-                        <div class="card prot-card"><div class="prot-icon" style="color: #e67e22; background: rgba(230, 126, 34, 0.1);"><i class="fas fa-bolt"></i></div><h3>Arus Motor</h3><p class="prot-limit">Batas: < 20.0 A</p><div class="prot-val-box">Terbaca: <strong id="prot-val-arus">0.0</strong> A</div><div id="stat-ui-arus" class="prot-badge">Menunggu...</div></div>
-                        <div class="card prot-card"><div class="prot-icon" style="color: #f06548; background: rgba(240, 101, 72, 0.1);"><i class="fas fa-thermometer-half"></i></div><h3>Suhu Motor</h3><p class="prot-limit">Batas: < 60.0 °C</p><div class="prot-val-box">Terbaca: <strong id="prot-val-suhu">0.0</strong> °C</div><div id="stat-ui-suhu" class="prot-badge">Menunggu...</div></div>
+                        <div class="card prot-card"><div class="prot-icon" style="color: #e67e22; background: rgba(230, 126, 34, 0.1);"><i class="fas fa-bolt"></i></div><h3>Arus Motor</h3><p class="prot-limit">Batas: &lt; 20.0 A</p><div class="prot-val-box">Terbaca: <strong id="prot-val-arus">0.0</strong> A</div><div id="stat-ui-arus" class="prot-badge">Menunggu...</div></div>
+                        <div class="card prot-card"><div class="prot-icon" style="color: #f06548; background: rgba(240, 101, 72, 0.1);"><i class="fas fa-thermometer-half"></i></div><h3>Suhu Motor</h3><p class="prot-limit">Batas: &lt; 60.0 °C</p><div class="prot-val-box">Terbaca: <strong id="prot-val-suhu">0.0</strong> °C</div><div id="stat-ui-suhu" class="prot-badge">Menunggu...</div></div>
                     </div>
                 </div>
             </div>
@@ -142,7 +146,7 @@
                 <div class="riwayat-container">
                     <div class="riwayat-header">
                         <div>
-                            <h2 style="color: var(--text-main); margin-bottom: 5px;">Data Logger (Interval 5 Menit)</h2>
+                            <h2 style="color: var(--text-main); margin-bottom: 5px;">Data Logger</h2>
                             <p style="color: var(--text-muted); font-size: 14px;">Data disinkronkan secara otomatis dari Firebase Cloud.</p>
                         </div>
                         <button id="btn-download-pdf" class="btn-pdf"><i class="fas fa-file-pdf"></i> Download Laporan PDF</button>
@@ -152,7 +156,8 @@
                         <table id="history-table" class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Tanggal</th> <th>Waktu</th>
+                                    <th>Tanggal</th> 
+                                    <th>Waktu</th>
                                     <th>Tegangan</th>
                                     <th>Arus</th>
                                     <th>Daya</th>
@@ -161,7 +166,8 @@
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="history-tbody"></tbody>
+                            <tbody id="history-tbody">
+                                </tbody>
                         </table>
                     </div>
                 </div>
