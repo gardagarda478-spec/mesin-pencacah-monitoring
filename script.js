@@ -90,25 +90,24 @@ document.addEventListener("DOMContentLoaded", function() {
     let currentLogListener = null; 
     let currentLogRef = null;
 
-    // Set default ke hari ini (Format YYYY-MM-DD sesuai zona waktu lokal)
+    // Set default kalender ke hari ini (Format YYYY-MM-DD)
     const today = new Date();
-    // Memastikan format YYYY-MM-DD
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     const todayStr = `${yyyy}-${mm}-${dd}`;
     
     if (inputTanggal) {
-        inputTanggal.value = todayStr; // Tampilkan tanggal hari ini di kotak
+        inputTanggal.value = todayStr; // Tampilkan tanggal hari ini di kotak input
         
-        // Listener jika user mengganti tanggal di kalender
+        // Memicu pencarian ulang jika user merubah tanggal kalender
         inputTanggal.addEventListener('change', (e) => {
             loadRiwayatData(e.target.value);
         });
     }
 
     function loadRiwayatData(tanggalDipilih) {
-        // Matikan listener lama agar data antar tanggal tidak bercampur
+        // Matikan pendengar database lama agar tidak bentrok
         if (currentLogRef && currentLogListener) {
             currentLogRef.off('value', currentLogListener);
         }
@@ -118,7 +117,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #6c757d;">Mencari data pada tanggal ${tanggalDipilih}...</td></tr>`;
 
-        // Arahkan ke folder tanggal tersebut (TANPA BATAS BARIS)
+        // Menunjuk ke lokasi folder harian Firebase (TANPA BATAS BARIS LIMIT)
         currentLogRef = firebase.database().ref(`PencacahRumput/Riwayat/${tanggalDipilih}`);
         
         currentLogListener = currentLogRef.on('value', (snapshot) => {
@@ -126,17 +125,17 @@ document.addEventListener("DOMContentLoaded", function() {
             snapshot.forEach((child) => {
                 let row = child.val();
                 if (row && row.tanggal && row.waktu && row.tanggal !== "-" && row.tanggal !== "N/A") {
-                    logs.unshift(row); // Balik urutan agar terbaru di atas
+                    logs.unshift(row); // Mengurutkan data terbaru di baris paling atas tabel
                 }
             });
 
-            // Jika folder kosong atau belum ada data hari ini
+            // Jika folder tanggal belum dibuat atau kosong
             if (logs.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #dc3545; font-weight: bold;"><i class="fas fa-folder-open"></i> Tidak ada data terekam pada tanggal ${tanggalDipilih}.</td></tr>`;
                 return;
             }
 
-            // Render semua data jika valid
+            // Render semua data riwayat harian
             tbody.innerHTML = logs.map(row => `
                 <tr>
                     <td>${row.tanggal}</td>
@@ -152,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Panggil fungsi pertama kali dengan tanggal hari ini
+    // Panggil otomatis riwayat hari ini saat web pertama kali dibuka
     loadRiwayatData(todayStr);
 
     // --- 7. MENGAMBIL DATA REAL-TIME DARI FIREBASE ---
