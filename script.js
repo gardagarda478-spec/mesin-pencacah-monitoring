@@ -46,7 +46,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('PencacahRumput');
-    const logRef = firebase.database().ref('PencacahRumput/Riwayat');
 
     // --- 5. TIMER WATCHDOG (DETEKSI ESP32 MATI) ---
     let watchdogTimer = null;
@@ -86,40 +85,75 @@ document.addEventListener("DOMContentLoaded", function() {
     
     setOfflineState();
 
-    // --- 6. MENGAMBIL TABEL RIWAYAT DARI FIREBASE GLOBAL ---
-    logRef.limitToLast(50).on('value', (snapshot) => {
-        const tbody = document.getElementById('history-tbody');
-        if (!tbody) return;
-        
-        let logs = [];
-        snapshot.forEach((child) => {
-            let row = child.val();
-            // PERBAIKAN: Filter ketat! Hanya masukkan data yang benar-benar ada tanggal & waktunya
-            if (row && row.tanggal && row.waktu && row.tanggal !== "-" && row.tanggal !== "N/A") {
-                logs.unshift(row); // Balik urutan agar terbaru di atas
-            }
-        });
+    // --- 6. MENGAMBIL TABEL RIWAYAT BERDASARKAN FOLDER TANGGAL (UNLIMITED) ---
+    const inputTanggal = document.getElementById('filter-tanggal');
+    let currentLogListener = null; 
+    let currentLogRef = null;
 
-        // Mencegah tabel kosong melompong jika data belum ada
-        if (logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #6c757d;">Menunggu data riwayat masuk...</td></tr>`;
-            return;
+    // Set default ke hari ini (Format YYYY-MM-DD sesuai zona waktu lokal)
+    const today = new Date();
+    // Memastikan format YYYY-MM-DD
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    
+    if (inputTanggal) {
+        inputTanggal.value = todayStr; // Tampilkan tanggal hari ini di kotak
+        
+        // Listener jika user mengganti tanggal di kalender
+        inputTanggal.addEventListener('change', (e) => {
+            loadRiwayatData(e.target.value);
+        });
+    }
+
+    function loadRiwayatData(tanggalDipilih) {
+        // Matikan listener lama agar data antar tanggal tidak bercampur
+        if (currentLogRef && currentLogListener) {
+            currentLogRef.off('value', currentLogListener);
         }
 
-        // Render tabel jika data valid
-        tbody.innerHTML = logs.map(row => `
-            <tr>
-                <td>${row.tanggal}</td>
-                <td>${row.waktu}</td>
-                <td>${row.teg || '0.0'} V</td>
-                <td>${row.arus || '0.00'} A</td>
-                <td>${row.daya || '0.00'} W</td>
-                <td>${row.suhu || '0.0'} °C</td>
-                <td style="color:#f1c40f; font-weight:bold">${row.konsumsi || '0.00'} Wh</td>
-                <td class="${(row.status || '').includes('AMAN') ? 'status-on' : 'status-off'}">${row.status || '-'}</td>
-            </tr>
-        `).join('');
-    });
+        const tbody = document.getElementById('history-tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #6c757d;">Mencari data pada tanggal ${tanggalDipilih}...</td></tr>`;
+
+        // Arahkan ke folder tanggal tersebut (TANPA BATAS BARIS)
+        currentLogRef = firebase.database().ref(`PencacahRumput/Riwayat/${tanggalDipilih}`);
+        
+        currentLogListener = currentLogRef.on('value', (snapshot) => {
+            let logs = [];
+            snapshot.forEach((child) => {
+                let row = child.val();
+                if (row && row.tanggal && row.waktu && row.tanggal !== "-" && row.tanggal !== "N/A") {
+                    logs.unshift(row); // Balik urutan agar terbaru di atas
+                }
+            });
+
+            // Jika folder kosong atau belum ada data hari ini
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #dc3545; font-weight: bold;"><i class="fas fa-folder-open"></i> Tidak ada data terekam pada tanggal ${tanggalDipilih}.</td></tr>`;
+                return;
+            }
+
+            // Render semua data jika valid
+            tbody.innerHTML = logs.map(row => `
+                <tr>
+                    <td>${row.tanggal}</td>
+                    <td>${row.waktu}</td>
+                    <td>${row.teg || '0.0'} V</td>
+                    <td>${row.arus || '0.00'} A</td>
+                    <td>${row.daya || '0.00'} W</td>
+                    <td>${row.suhu || '0.0'} °C</td>
+                    <td style="color:#f1c40f; font-weight:bold">${row.konsumsi || '0.00'} Wh</td>
+                    <td class="${(row.status || '').includes('AMAN') ? 'status-on' : 'status-off'}">${row.status || '-'}</td>
+                </tr>
+            `).join('');
+        });
+    }
+
+    // Panggil fungsi pertama kali dengan tanggal hari ini
+    loadRiwayatData(todayStr);
 
     // --- 7. MENGAMBIL DATA REAL-TIME DARI FIREBASE ---
     dbRef.on('value', snap => {
@@ -223,12 +257,13 @@ document.addEventListener("DOMContentLoaded", function() {
     const btnDownload = document.getElementById('btn-download-pdf');
     if (btnDownload) {
         btnDownload.addEventListener('click', () => {
+            const dateStr = document.getElementById('filter-tanggal').value;
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('l', 'mm', 'a4');
             doc.setFontSize(18);
-            doc.text("Laporan Riwayat Data - Bhakti Farm", 14, 20);
+            doc.text(`Laporan Riwayat Data - Bhakti Farm (${dateStr})`, 14, 20);
             doc.autoTable({ html: '#history-table', startY: 30, theme: 'striped', headStyles: { fillColor: [10, 179, 156] } });
-            doc.save(`Laporan_BhaktiFarm_${Date.now()}.pdf`);
+            doc.save(`Laporan_BhaktiFarm_${dateStr}.pdf`);
         });
     }
 });

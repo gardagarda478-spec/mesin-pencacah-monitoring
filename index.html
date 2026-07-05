@@ -15,16 +15,40 @@
     <style>
         .secondary-stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr) !important; /* Mengunci agar menjadi 3 kolom berjejer */
+            grid-template-columns: repeat(3, 1fr) !important; 
             gap: 20px;
             margin-bottom: 20px;
         }
         
-        /* Tampilan Responsif: Otomatis menyusun ke bawah jika dibuka di HP */
         @media (max-width: 992px) {
             .secondary-stats {
                 grid-template-columns: 1fr !important;
             }
+            .riwayat-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+        }
+
+        /* Styling Khusus untuk Input Tanggal */
+        .date-filter-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .date-filter-box input[type="date"] {
+            border: 1px solid #ced4da;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: inherit;
+            color: #495057;
+            font-weight: bold;
+            outline: none;
         }
     </style>
 </head>
@@ -144,15 +168,21 @@
 
             <div id="tab-riwayat" class="tab-content">
                 <div class="riwayat-container">
-                    <div class="riwayat-header">
+                    
+                    <div class="riwayat-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                         <div>
-                            <h2 style="color: var(--text-main); margin-bottom: 5px;">Data Logger</h2>
-                            <p style="color: var(--text-muted); font-size: 14px;">Data disinkronkan secara otomatis dari Firebase Cloud.</p>
+                            <h2 style="color: var(--text-main); margin-bottom: 5px;">Data Logger Harian</h2>
+                            <p style="color: var(--text-muted); font-size: 14px;">Pilih tanggal untuk melihat riwayat tanpa batas baris.</p>
                         </div>
-                        <button id="btn-download-pdf" class="btn-pdf"><i class="fas fa-file-pdf"></i> Download Laporan PDF</button>
+                        
+                        <div class="date-filter-box">
+                            <label for="filter-tanggal" style="color: #6c757d; font-size: 14px; font-weight: 500;"><i class="far fa-calendar-alt"></i> Tanggal:</label>
+                            <input type="date" id="filter-tanggal">
+                            <button id="btn-download-pdf" class="btn-pdf" style="margin-left: 10px;"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                        </div>
                     </div>
 
-                    <div class="card table-wrapper">
+                    <div class="card table-wrapper" style="margin-top: 20px;">
                         <table id="history-table" class="data-table">
                             <thead>
                                 <tr>
@@ -172,6 +202,7 @@
                     </div>
                 </div>
             </div>
+            
         </main>
     </div>
 
