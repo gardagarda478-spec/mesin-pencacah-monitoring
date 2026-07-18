@@ -23,9 +23,42 @@ document.addEventListener("DOMContentLoaded", function() {
     updateDateTime();
     setInterval(updateDateTime, 1000);
 
-    // --- 3. CONFIG GRAFIK ---
-    const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } };
-    const createChart = (id, color, label) => new Chart(document.getElementById(id), { type: 'line', data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: color + '1A', fill: true, tension: 0.4 }] }, options: chartOpts });
+    // --- 3. CONFIG GRAFIK (DENGAN OPTIMASI SUMBUw WAKTU 24 JAM) ---
+    const chartOpts = { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { 
+            legend: { display: false } 
+        }, 
+        scales: { 
+            x: { 
+                grid: { display: false },
+                ticks: {
+                    maxTicksLimit: 12, // Membatasi label jam yang tampil (maksimal 12 titik) agar tidak menumpuk saat menampilkan 24 jam
+                    maxRotation: 0,
+                    minRotation: 0
+                }
+            } 
+        } 
+    };
+    
+    const createChart = (id, color, label) => new Chart(document.getElementById(id), { 
+        type: 'line', 
+        data: { 
+            labels: [], 
+            datasets: [{ 
+                label, 
+                data: [], 
+                borderColor: color, 
+                backgroundColor: color + '1A', 
+                fill: true, 
+                tension: 0.4,
+                pointRadius: 2, // Ukuran titik diperkecil agar rapi saat data padat
+                pointHoverRadius: 5
+            }] 
+        }, 
+        options: chartOpts 
+    });
     
     const cTeg = createChart('chartTegangan', '#0ab39c', 'V');
     const cArus = createChart('chartArus', '#e67e22', 'A');
@@ -85,7 +118,7 @@ document.addEventListener("DOMContentLoaded", function() {
     
     setOfflineState();
 
-    // --- 6. MENGAMBIL TABEL RIWAYAT BERDASARKAN FOLDER TANGGAL (UNLIMITED) ---
+    // --- 6. MENGAMBIL TABEL RIWAYAT & PLOT GRAFIK 24 JAM BERDASARKAN FOLDER TANGGAL ---
     const inputTanggal = document.getElementById('filter-tanggal');
     let currentLogListener = null; 
     let currentLogRef = null;
@@ -122,12 +155,52 @@ document.addEventListener("DOMContentLoaded", function() {
         
         currentLogListener = currentLogRef.on('value', (snapshot) => {
             let logs = [];
+            
+            // Array untuk menampung riwayat data grafik 24 jam
+            let chartLabels = [];
+            let chartDataTeg = [];
+            let chartDataArus = [];
+            let chartDataDaya = [];
+            let chartDataSuhu = [];
+            let chartDataRpm = [];
+
             snapshot.forEach((child) => {
                 let row = child.val();
                 if (row && row.tanggal && row.waktu && row.tanggal !== "-" && row.tanggal !== "N/A") {
-                    logs.unshift(row); // Mengurutkan data terbaru di baris paling atas tabel
+                    // 1. Data untuk Tabel (diurutkan terbaru di atas / reverse)
+                    logs.unshift(row); 
+                    
+                    // 2. Data untuk Grafik (diurutkan kronologis normal: pagi/00.00 ke malam)
+                    chartLabels.push(row.waktu);
+                    chartDataTeg.push(parseFloat(row.teg || 0));
+                    chartDataArus.push(parseFloat(row.arus || 0));
+                    chartDataDaya.push(parseFloat(row.daya || 0));
+                    chartDataSuhu.push(parseFloat(row.suhu || 0));
+                    chartDataRpm.push(parseInt(row.rpm || 0));
                 }
             });
+
+            // --- PLOT KE GRAFIK CHART.JS (MEMUAT RIWAYAT 24 JAM SEHARIAN PENUH) ---
+            cTeg.data.labels = chartLabels;
+            cTeg.data.datasets[0].data = chartDataTeg;
+            cTeg.update();
+
+            cArus.data.labels = chartLabels;
+            cArus.data.datasets[0].data = chartDataArus;
+            cArus.update();
+
+            cDaya.data.labels = chartLabels;
+            cDaya.data.datasets[0].data = chartDataDaya;
+            cDaya.update();
+
+            cSuhu.data.labels = chartLabels;
+            cSuhu.data.datasets[0].data = chartDataSuhu;
+            cSuhu.update();
+
+            cRpm.data.labels = chartLabels;
+            cRpm.data.datasets[0].data = chartDataRpm;
+            cRpm.update();
+            // ----------------------------------------------------------------------
 
             // Jika folder tanggal belum dibuat atau kosong
             if (logs.length === 0) {
@@ -135,7 +208,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
 
-            // Render semua data riwayat harian
+            // Render semua data riwayat harian ke tabel
             tbody.innerHTML = logs.map(row => `
                 <tr>
                     <td>${row.tanggal}</td>
@@ -154,7 +227,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Panggil otomatis riwayat hari ini saat web pertama kali dibuka
     loadRiwayatData(todayStr);
 
-    // --- 7. MENGAMBIL DATA REAL-TIME DARI FIREBASE ---
+    // --- 7. MENGAMBIL DATA REAL-TIME DARI FIREBASE (TELEMETRI LIVE) ---
     dbRef.on('value', snap => {
         const data = snap.val();
         if (!data) return;
@@ -242,14 +315,23 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
-        [cTeg, cArus, cDaya, cSuhu, cRpm].forEach((c, i) => {
-            const val = [teg, arus, daya, suhu, rpm][i];
-            c.data.labels.push(timeStr);
-            c.data.datasets[0].data.push(val);
-            if(c.data.labels.length > 15) { c.data.labels.shift(); c.data.datasets[0].data.shift(); }
-            c.update();
-        });
+        // ---> MODIFIKASI REAL-TIME UPDATE TANPA BATAS PEMOTONGAN KETERBATASAN WAKTU <---
+        // Jika sedang melihat tanggal hari ini, tambahkan data live terbaru langsung ke ujung grafik
+        const dateInputVal = document.getElementById('filter-tanggal') ? document.getElementById('filter-tanggal').value : '';
+        if (dateInputVal === todayStr) {
+            const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
+            
+            // Cek agar waktu tidak duplikat (mengindari plotting berulang pada detik yang sama di grafik)
+            const lastLabel = cTeg.data.labels[cTeg.data.labels.length - 1];
+            if (lastLabel !== timeStr) {
+                [cTeg, cArus, cDaya, cSuhu, cRpm].forEach((c, i) => {
+                    const val = [teg, arus, daya, suhu, rpm][i];
+                    c.data.labels.push(timeStr);
+                    c.data.datasets[0].data.push(val);
+                    c.update();
+                });
+            }
+        }
     });
 
     // --- 8. FUNGSI DOWNLOAD PDF ---
