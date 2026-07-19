@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function() {
     updateDateTime();
     setInterval(updateDateTime, 1000);
 
-    // --- 3. CONFIG GRAFIK (DENGAN OPTIMASI SUMBUw WAKTU 24 JAM) ---
+    // --- 3. CONFIG GRAFIK (DENGAN OPTIMASI SUMBU WAKTU 24 JAM) ---
     const chartOpts = { 
         responsive: true, 
         maintainAspectRatio: false, 
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function() {
             x: { 
                 grid: { display: false },
                 ticks: {
-                    maxTicksLimit: 12, // Membatasi label jam yang tampil (maksimal 12 titik) agar tidak menumpuk saat menampilkan 24 jam
+                    maxTicksLimit: 12, // Membatasi label jam agar tidak menumpuk saat menampilkan 24 jam
                     maxRotation: 0,
                     minRotation: 0
                 }
@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", function() {
     
     setOfflineState();
 
-    // --- 6. MENGAMBIL TABEL RIWAYAT & PLOT GRAFIK 24 JAM BERDASARKAN FOLDER TANGGAL ---
+    // --- 6. MENGAMBIL TABEL RIWAYAT & PLOT GRAFIK BERDASARKAN FOLDER TANGGAL ---
     const inputTanggal = document.getElementById('filter-tanggal');
     let currentLogListener = null; 
     let currentLogRef = null;
@@ -150,37 +150,47 @@ document.addEventListener("DOMContentLoaded", function() {
 
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #6c757d;">Mencari data pada tanggal ${tanggalDipilih}...</td></tr>`;
 
-        // Menunjuk ke lokasi folder harian Firebase (TANPA BATAS BARIS LIMIT)
+        // Menunjuk ke lokasi folder harian Firebase
         currentLogRef = firebase.database().ref(`PencacahRumput/Riwayat/${tanggalDipilih}`);
         
         currentLogListener = currentLogRef.on('value', (snapshot) => {
-            let logs = [];
+            let rawLogs = [];
             
-            // Array untuk menampung riwayat data grafik 24 jam
-            let chartLabels = [];
-            let chartDataTeg = [];
-            let chartDataArus = [];
-            let chartDataDaya = [];
-            let chartDataSuhu = [];
-            let chartDataRpm = [];
-
             snapshot.forEach((child) => {
                 let row = child.val();
-                if (row && row.tanggal && row.waktu && row.tanggal !== "-" && row.tanggal !== "N/A") {
-                    // 1. Data untuk Tabel (diurutkan terbaru di atas / reverse)
-                    logs.unshift(row); 
-                    
-                    // 2. Data untuk Grafik (diurutkan kronologis normal: pagi/00.00 ke malam)
-                    chartLabels.push(row.waktu);
-                    chartDataTeg.push(parseFloat(row.teg || 0));
-                    chartDataArus.push(parseFloat(row.arus || 0));
-                    chartDataDaya.push(parseFloat(row.daya || 0));
-                    chartDataSuhu.push(parseFloat(row.suhu || 0));
-                    chartDataRpm.push(parseInt(row.rpm || 0));
+                if (row && row.waktu && row.waktu !== "-" && row.waktu !== "N/A") {
+                    rawLogs.push(row);
                 }
             });
 
-            // --- PLOT KE GRAFIK CHART.JS (MEMUAT RIWAYAT 24 JAM SEHARIAN PENUH) ---
+            // Jika folder tanggal belum dibuat atau kosong
+            if (rawLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #dc3545; font-weight: bold;"><i class="fas fa-folder-open"></i> Tidak ada data terekam pada tanggal ${tanggalDipilih}.</td></tr>`;
+                
+                // Kosongkan grafik jika tidak ada data
+                [cTeg, cArus, cDaya, cSuhu, cRpm].forEach(c => {
+                    c.data.labels = [];
+                    c.data.datasets[0].data = [];
+                    c.update();
+                });
+                return;
+            }
+
+            // ---> PENTING: MENGURUTKAN DATA SECARA KRONOLOGIS DARI PAGI KE MALAM <---
+            rawLogs.sort((a, b) => {
+                // Mengurutkan berdasarkan waktu (misal "06:00:00" sebelum "14:00:00")
+                return a.waktu.localeCompare(b.waktu);
+            });
+
+            // 1. Data untuk Grafik (diurutkan kronologis normal: pagi ke malam)
+            let chartLabels = rawLogs.map(r => r.waktu);
+            let chartDataTeg = rawLogs.map(r => parseFloat(r.teg || 0));
+            let chartDataArus = rawLogs.map(r => parseFloat(r.arus || 0));
+            let chartDataDaya = rawLogs.map(r => parseFloat(r.daya || 0));
+            let chartDataSuhu = rawLogs.map(r => parseFloat(r.suhu || 0));
+            let chartDataRpm = rawLogs.map(r => parseInt(r.rpm || 0));
+
+            // --- PLOT KE GRAFIK CHART.JS ---
             cTeg.data.labels = chartLabels;
             cTeg.data.datasets[0].data = chartDataTeg;
             cTeg.update();
@@ -200,24 +210,20 @@ document.addEventListener("DOMContentLoaded", function() {
             cRpm.data.labels = chartLabels;
             cRpm.data.datasets[0].data = chartDataRpm;
             cRpm.update();
-            // ----------------------------------------------------------------------
 
-            // Jika folder tanggal belum dibuat atau kosong
-            if (logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: #dc3545; font-weight: bold;"><i class="fas fa-folder-open"></i> Tidak ada data terekam pada tanggal ${tanggalDipilih}.</td></tr>`;
-                return;
-            }
+            // 2. Data untuk Tabel (Di-reverse agar data terbaru muncul paling atas)
+            let tableLogs = [...rawLogs].reverse();
 
-            // Render semua data riwayat harian ke tabel
-            tbody.innerHTML = logs.map(row => `
+            // Render semua data riwayat harian ke tabel dengan angka desimal yang rapi
+            tbody.innerHTML = tableLogs.map(row => `
                 <tr>
-                    <td>${row.tanggal}</td>
+                    <td>${row.tanggal || tanggalDipilih}</td>
                     <td>${row.waktu}</td>
-                    <td>${row.teg || '0.0'} V</td>
-                    <td>${row.arus || '0.00'} A</td>
-                    <td>${row.daya || '0.00'} W</td>
-                    <td>${row.suhu || '0.0'} °C</td>
-                    <td style="color:#f1c40f; font-weight:bold">${row.konsumsi || '0.00'} Wh</td>
+                    <td>${parseFloat(row.teg || 0).toFixed(1)} V</td>
+                    <td>${parseFloat(row.arus || 0).toFixed(2)} A</td>
+                    <td>${parseFloat(row.daya || 0).toFixed(2)} W</td>
+                    <td>${parseFloat(row.suhu || 0).toFixed(1)} °C</td>
+                    <td style="color:#f1c40f; font-weight:bold">${parseFloat(row.konsumsi || 0).toFixed(2)} Wh</td>
                     <td class="${(row.status || '').includes('AMAN') ? 'status-on' : 'status-off'}">${row.status || '-'}</td>
                 </tr>
             `).join('');
@@ -240,7 +246,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const teg = parseFloat(data.tegangan || 0);
         const arus = parseFloat(data.arus || 0);
         const suhu = parseFloat(data.suhu || 0);
-        const rpm = data.rpm || 0;
+        const rpm = parseInt(data.rpm || 0);
         const daya = parseFloat(data.daya || 0);
         
         const bateraiPersen = parseFloat(data.baterai_persen || 0);
@@ -315,21 +321,23 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        // ---> MODIFIKASI REAL-TIME UPDATE TANPA BATAS PEMOTONGAN KETERBATASAN WAKTU <---
-        // Jika sedang melihat tanggal hari ini, tambahkan data live terbaru langsung ke ujung grafik
+        // ---> MODIFIKASI REAL-TIME UPDATE TANPA MERUSAK URUTAN WAKTU <---
         const dateInputVal = document.getElementById('filter-tanggal') ? document.getElementById('filter-tanggal').value : '';
         if (dateInputVal === todayStr) {
             const timeStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
             
-            // Cek agar waktu tidak duplikat (mengindari plotting berulang pada detik yang sama di grafik)
+            // Cek agar waktu tidak duplikat di detik yang sama
             const lastLabel = cTeg.data.labels[cTeg.data.labels.length - 1];
             if (lastLabel !== timeStr) {
-                [cTeg, cArus, cDaya, cSuhu, cRpm].forEach((c, i) => {
-                    const val = [teg, arus, daya, suhu, rpm][i];
-                    c.data.labels.push(timeStr);
-                    c.data.datasets[0].data.push(val);
-                    c.update();
-                });
+                // Cek apakah waktu live lebih besar dari label waktu terakhir (mencegah grafik melipat ke belakang)
+                if (!lastLabel || timeStr.localeCompare(lastLabel) > 0) {
+                    [cTeg, cArus, cDaya, cSuhu, cRpm].forEach((c, i) => {
+                        const val = [teg, arus, daya, suhu, rpm][i];
+                        c.data.labels.push(timeStr);
+                        c.data.datasets[0].data.push(val);
+                        c.update();
+                    });
+                }
             }
         }
     });
